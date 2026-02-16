@@ -129,6 +129,11 @@ public class Enemy : MonoBehaviour
 
         if (currentHP <= 0)
         {
+            // 경험치 지급
+            if (LevelManager.Instance != null)
+            {
+                LevelManager.Instance.AddExp(1);
+            }
             Destroy(gameObject);
         }
     }

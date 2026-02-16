@@ -15,9 +15,17 @@ public class PlayerHealth : MonoBehaviour
     // UI 관련
     private GameObject canvasObj;
     private Image hpBarFill;
+    private Text levelText;
 
     void Start()
     {
+        // LevelManager 자동 생성 (없을 경우)
+        if (LevelManager.Instance == null)
+        {
+            GameObject lm = new GameObject("LevelManager");
+            lm.AddComponent<LevelManager>();
+        }
+
         currentHP = maxHP;
 
         spriteRenderer = GetComponent<SpriteRenderer>();
@@ -32,11 +40,16 @@ public class PlayerHealth : MonoBehaviour
     void CreateHPBar()
     {
         // Canvas 생성
-        canvasObj = new GameObject("PlayerHPCanvas");
-        Canvas canvas = canvasObj.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 100;
-        canvasObj.AddComponent<CanvasScaler>();
+        canvasObj = GameObject.Find("PlayerHPCanvas");
+        if (canvasObj == null)
+        {
+            canvasObj = new GameObject("PlayerHPCanvas");
+            Canvas canvas = canvasObj.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 100;
+            canvasObj.AddComponent<CanvasScaler>();
+            canvasObj.AddComponent<GraphicRaycaster>();
+        }
 
         // HP바 배경 (어두운 회색)
         GameObject bgObj = new GameObject("HPBarBG");
@@ -61,6 +74,32 @@ public class PlayerHealth : MonoBehaviour
         fillRect.pivot = new Vector2(0, 0.5f);
         fillRect.offsetMin = Vector2.zero;
         fillRect.offsetMax = Vector2.zero;
+
+        // 레벨 텍스트 생성
+        GameObject textObj = new GameObject("LevelText");
+        textObj.transform.SetParent(canvasObj.transform, false);
+        levelText = textObj.AddComponent<Text>();
+        levelText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        levelText.fontSize = 20;
+        levelText.color = Color.white;
+        levelText.alignment = TextAnchor.MiddleLeft;
+        levelText.text = "Lv. 1";
+        
+        RectTransform textRect = textObj.GetComponent<RectTransform>();
+        textRect.anchorMin = new Vector2(0, 1);
+        textRect.anchorMax = new Vector2(0, 1);
+        textRect.pivot = new Vector2(0, 1);
+        // HP바 오른쪽 끝(20 + 250)에서 조금 띄워서(10) 배치
+        textRect.anchoredPosition = new Vector2(280, -20);
+        textRect.sizeDelta = new Vector2(100, 30);
+    }
+
+    public void UpdateLevelText(int level)
+    {
+        if (levelText != null)
+        {
+            levelText.text = "Lv. " + level;
+        }
     }
 
     public void TakeDamage(int damage)
