@@ -133,7 +133,7 @@ public class Enemy : MonoBehaviour
                 {
                     // 가드 각도 계산 (전방 120도 = 좌우 60도)
                     Vector2 dirToEnemy = ((Vector2)transform.position - (Vector2)player.position).normalized;
-                    if (Vector2.Angle(player.up, dirToEnemy) < 60f)
+                    if (Vector2.Angle((Vector2)player.up, dirToEnemy) < 60f)
                     {
                         isGuarding = true;
                     }
@@ -183,6 +183,13 @@ public class Enemy : MonoBehaviour
             {
                 LevelManager.Instance.AddExp(1);
             }
+
+            // 웨이브 킬 카운트 업데이트
+            if (EnemySpawner.Instance != null)
+            {
+                EnemySpawner.Instance.OnEnemyKilled();
+            }
+
             Destroy(gameObject);
         }
     }
