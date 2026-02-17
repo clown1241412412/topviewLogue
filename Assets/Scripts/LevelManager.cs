@@ -89,14 +89,26 @@ public class LevelManager : MonoBehaviour
         level++;
         requiredExp += expIncreasePerLevel;
         
-        // 레벨업 효과나 소리 등을 여기에 추가 가능
         Debug.Log("Level Up! New Level: " + level);
 
-        // PlayerHealth 통해 레벨 텍스트 갱신 알림
-        PlayerHealth playerHealth = FindFirstObjectByType<PlayerHealth>();
-        if (playerHealth != null)
+        // Player 찾기
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
         {
-            playerHealth.UpdateLevelText(level);
+            // 1. 체력 증가 (+20)
+            PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
+            if (playerHealth != null)
+            {
+                playerHealth.IncreaseMaxHP(20);
+                playerHealth.UpdateLevelText(level);
+            }
+
+            // 2. 공격력 증가 (+1)
+            Attack playerAttack = player.GetComponent<Attack>();
+            if (playerAttack != null)
+            {
+                playerAttack.IncreaseDamage(1);
+            }
         }
     }
 

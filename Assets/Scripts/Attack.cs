@@ -12,6 +12,21 @@ public class Attack : MonoBehaviour
     public float guardAngle = 90f;
     public int attackDamage = 1;
 
+    public void IncreaseDamage(int amount)
+    {
+        attackDamage += amount;
+        if (weaponController != null)
+        {
+            weaponController.damage = attackDamage;
+        }
+        
+        PlayerHealth health = GetComponent<PlayerHealth>();
+        if (health != null)
+        {
+            health.UpdateDamageText(attackDamage);
+        }
+    }
+
     private bool isAttacking = false;
     private bool isGuarding = false;
     private Quaternion initialRotation;
@@ -48,6 +63,14 @@ public class Attack : MonoBehaviour
                     // Debug.Log("WeaponController가 없어서 자동으로 추가했습니다.");
                 }
                 weaponController.damage = attackDamage;
+            }
+
+            // UI 초기화
+            PlayerHealth health = GetComponent<PlayerHealth>();
+            if (health == null) health = GetComponentInParent<PlayerHealth>();
+            if (health != null)
+            {
+                health.UpdateDamageText(attackDamage);
             }
             else
             {
