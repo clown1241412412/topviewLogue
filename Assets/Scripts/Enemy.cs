@@ -71,9 +71,29 @@ public class Enemy : MonoBehaviour
         return Sprite.Create(tex, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1f);
     }
 
+    // 넉백 관련 변수
+    private bool isKnockedBack = false;
+    private float knockbackTimer = 0f;
+    public float knockbackDuration = 0.2f; // 넉백 지속 시간
+    public float knockbackSpeed = 10f; // 넉백 속도 (일반 이동 속도보다 빠름)
+    private Vector2 knockbackDir;
+
     void Update()
     {
         if (player == null) return;
+
+        // 넉백 상태 처리
+        if (isKnockedBack)
+        {
+            knockbackTimer -= Time.deltaTime;
+            transform.position += (Vector3)(knockbackDir * knockbackSpeed * Time.deltaTime);
+
+            if (knockbackTimer <= 0f)
+            {
+                isKnockedBack = false;
+            }
+            return; // 넉백 중에는 일반 이동 및 공격 불가
+        }
 
         // 스폰 후 딜레이
         if (!canHit)
@@ -105,12 +125,41 @@ public class Enemy : MonoBehaviour
             float dist = Vector2.Distance(transform.position, player.position);
             if (dist <= hitDistance)
             {
-                PlayerHealth health = player.GetComponent<PlayerHealth>();
-                if (health != null)
+                // 플레이어가 가드 중인지 확인
+                Attack playerAttack = player.GetComponent<Attack>();
+                bool isGuarding = false;
+
+                if (playerAttack != null && playerAttack.IsGuarding)
                 {
-                    health.TakeDamage(contactDamage);
+                    // 가드 각도 계산 (전방 120도 = 좌우 60도)
+                    Vector2 dirToEnemy = ((Vector2)transform.position - (Vector2)player.position).normalized;
+                    if (Vector2.Angle(player.up, dirToEnemy) < 60f)
+                    {
+                        isGuarding = true;
+                    }
                 }
-                Destroy(gameObject);
+
+                if (isGuarding)
+                {
+                    // 가드 성공: 넉백 발생
+                    isKnockedBack = true;
+                    knockbackTimer = knockbackDuration;
+                    // 플레이어에서 멀어지는 방향
+                    knockbackDir = ((Vector2)transform.position - (Vector2)player.position).normalized;
+                    
+                    // 넉백 효과나 소리를 여기에 추가 가능
+                    // Debug.Log("Guard Triggered! Enemy Knockback.");
+                }
+                else
+                {
+                    // 피격 성공
+                    PlayerHealth health = player.GetComponent<PlayerHealth>();
+                    if (health != null)
+                    {
+                        health.TakeDamage(contactDamage);
+                    }
+                    Destroy(gameObject);
+                }
             }
         }
     }

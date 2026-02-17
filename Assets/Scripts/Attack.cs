@@ -29,6 +29,7 @@ public class Attack : MonoBehaviour
 
     private bool isAttacking = false;
     private bool isGuarding = false;
+    public bool IsGuarding => isGuarding; // 외부에서 접근 가능하도록 프로퍼티 추가
     private Quaternion initialRotation;
     private WeaponController weaponController;
 
