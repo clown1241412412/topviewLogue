@@ -23,9 +23,14 @@ public class WeaponController : MonoBehaviour
 
     public void StartAttack()
     {
-        hitEnemies.Clear();
+        ClearHitList();
         col.enabled = true;
         // Debug.Log("공격 시작! Collider 활성화됨");
+    }
+
+    public void ClearHitList()
+    {
+        hitEnemies.Clear();
     }
 
     public void EndAttack()

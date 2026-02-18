@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 public class Move : MonoBehaviour
 {
     public float speed = 5f;
+    public bool canRotate = true; // 스킬 사용 시 회전 제한을 위해 추가
     private Vector2 moveInput;
     private Rigidbody2D rb;
 

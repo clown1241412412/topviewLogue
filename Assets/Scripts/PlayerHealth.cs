@@ -25,6 +25,8 @@ public class PlayerHealth : MonoBehaviour
     private Text levelText;
     private Text hpText;
     private Text damageText;
+    private Image skillIconBg;
+    private Text skillKeyText;
 
     void Start()
     {
@@ -44,6 +46,7 @@ public class PlayerHealth : MonoBehaviour
         }
 
         CreateHPBar();
+        CreateSkillUI();
     }
 
     void CreateHPBar()
@@ -132,6 +135,39 @@ public class PlayerHealth : MonoBehaviour
         dmgTextRect.pivot = new Vector2(1, 1);
         dmgTextRect.anchoredPosition = new Vector2(-20, -20);
         dmgTextRect.sizeDelta = new Vector2(200, 35);
+    }
+
+    void CreateSkillUI()
+    {
+        if (canvasObj == null) return;
+
+        // 스킬 슬롯 배경 (회색 네모)
+        GameObject skillBgObj = new GameObject("SkillSlotBG");
+        skillBgObj.transform.SetParent(canvasObj.transform, false);
+        skillIconBg = skillBgObj.AddComponent<Image>();
+        skillIconBg.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+        
+        RectTransform rect = skillBgObj.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0, 0);
+        rect.anchorMax = new Vector2(0, 0);
+        rect.pivot = new Vector2(0, 0);
+        rect.anchoredPosition = new Vector2(20, 20); // 왼쪽 하단 여백
+        rect.sizeDelta = new Vector2(60, 60);
+
+        // "E" 텍스트
+        GameObject keyTextObj = new GameObject("SkillKeyText");
+        keyTextObj.transform.SetParent(skillBgObj.transform, false);
+        skillKeyText = keyTextObj.AddComponent<Text>();
+        skillKeyText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        skillKeyText.fontSize = 24;
+        skillKeyText.color = Color.white;
+        skillKeyText.alignment = TextAnchor.MiddleCenter;
+        skillKeyText.text = "E";
+
+        RectTransform keyRect = keyTextObj.GetComponent<RectTransform>();
+        keyRect.anchorMin = Vector2.zero;
+        keyRect.anchorMax = Vector2.one;
+        keyRect.sizeDelta = Vector2.zero;
     }
 
     public void UpdateLevelText(int level)
