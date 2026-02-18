@@ -19,14 +19,11 @@ public class EnemySpawner : MonoBehaviour
     [Header("웨이브 설정")]
     public int currentWave = 1;
     public int enemiesPerWaveBase = 10;
-    public int enemiesPerWaveIncrease = 5;
     public float waveInterval = 3f; // 웨이브 사이 대기 시간
-    public float spawnIntervalDecrease = 0.2f; // 웨이브마다 스폰 간격 감소량
 
     private int enemiesToDefeat;
     private int enemiesDefeated;
     private bool isWaveActive = false;
-    private int enemiesSpawnedInWave = 0;
     private float timer;
 
     // UI Components
@@ -132,7 +129,6 @@ public class EnemySpawner : MonoBehaviour
         // 적 수 증가 (+10씩)
         enemiesToDefeat = enemiesPerWaveBase + (wave - 1) * 10; 
         enemiesDefeated = 0;
-        enemiesSpawnedInWave = 0;
         isWaveActive = true;
         
         UpdateCountUI();

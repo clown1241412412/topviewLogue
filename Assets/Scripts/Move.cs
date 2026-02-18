@@ -11,7 +11,10 @@ public class Move : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        if (rb != null)
+        {
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        }
     }
 
     public void OnMove(InputValue value)
@@ -21,16 +24,25 @@ public class Move : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (rb == null) return;
         Vector2 movement = moveInput.normalized;
         rb.MovePosition(rb.position + movement * speed * Time.fixedDeltaTime);
     }
 
     void Update()
     {
-        Vector3 mouseScreenPos = Mouse.current.position.ReadValue();
-        Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(mouseScreenPos);
-        Vector2 direction = (mouseWorldPos - transform.position);
-        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
-        transform.rotation = Quaternion.Euler(0, 0, angle);
+        if (!canRotate) return;
+
+        Mouse ms = Mouse.current;
+        Camera cam = Camera.main;
+
+        if (ms != null && cam != null && ms.position != null)
+        {
+            Vector3 mouseScreenPos = ms.position.ReadValue();
+            Vector3 mouseWorldPos = cam.ScreenToWorldPoint(mouseScreenPos);
+            Vector2 direction = (mouseWorldPos - transform.position);
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
+            transform.rotation = Quaternion.Euler(0, 0, angle);
+        }
     }
 }

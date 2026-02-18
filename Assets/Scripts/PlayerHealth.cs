@@ -25,8 +25,10 @@ public class PlayerHealth : MonoBehaviour
     private Text levelText;
     private Text hpText;
     private Text damageText;
-    private Image skillIconBg;
-    private Text skillKeyText;
+    private Image skillIconBgQ;
+    private Image skillIconBgE;
+    private Text skillKeyTextQ;
+    private Text skillKeyTextE;
 
     void Start()
     {
@@ -141,33 +143,59 @@ public class PlayerHealth : MonoBehaviour
     {
         if (canvasObj == null) return;
 
-        // 스킬 슬롯 배경 (회색 네모)
-        GameObject skillBgObj = new GameObject("SkillSlotBG");
-        skillBgObj.transform.SetParent(canvasObj.transform, false);
-        skillIconBg = skillBgObj.AddComponent<Image>();
-        skillIconBg.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+        // Q 스킬 슬롯 (왼쪽)
+        GameObject qBgObj = new GameObject("SkillSlotQ");
+        qBgObj.transform.SetParent(canvasObj.transform, false);
+        skillIconBgQ = qBgObj.AddComponent<Image>();
+        skillIconBgQ.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
         
-        RectTransform rect = skillBgObj.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0, 0);
-        rect.anchorMax = new Vector2(0, 0);
-        rect.pivot = new Vector2(0, 0);
-        rect.anchoredPosition = new Vector2(20, 20); // 왼쪽 하단 여백
-        rect.sizeDelta = new Vector2(60, 60);
+        RectTransform qRect = qBgObj.GetComponent<RectTransform>();
+        qRect.anchorMin = new Vector2(0, 0);
+        qRect.anchorMax = new Vector2(0, 0);
+        qRect.pivot = new Vector2(0, 0);
+        qRect.anchoredPosition = new Vector2(20, 20);
+        qRect.sizeDelta = new Vector2(60, 60);
 
-        // "E" 텍스트
-        GameObject keyTextObj = new GameObject("SkillKeyText");
-        keyTextObj.transform.SetParent(skillBgObj.transform, false);
-        skillKeyText = keyTextObj.AddComponent<Text>();
-        skillKeyText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        skillKeyText.fontSize = 24;
-        skillKeyText.color = Color.white;
-        skillKeyText.alignment = TextAnchor.MiddleCenter;
-        skillKeyText.text = "E";
+        GameObject qTextObj = new GameObject("SkillKeyTextQ");
+        qTextObj.transform.SetParent(qBgObj.transform, false);
+        skillKeyTextQ = qTextObj.AddComponent<Text>();
+        skillKeyTextQ.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        skillKeyTextQ.fontSize = 24;
+        skillKeyTextQ.color = Color.white;
+        skillKeyTextQ.alignment = TextAnchor.MiddleCenter;
+        skillKeyTextQ.text = "Q";
+        
+        RectTransform qTextRect = qTextObj.GetComponent<RectTransform>();
+        qTextRect.anchorMin = Vector2.zero;
+        qTextRect.anchorMax = Vector2.one;
+        qTextRect.sizeDelta = Vector2.zero;
 
-        RectTransform keyRect = keyTextObj.GetComponent<RectTransform>();
-        keyRect.anchorMin = Vector2.zero;
-        keyRect.anchorMax = Vector2.one;
-        keyRect.sizeDelta = Vector2.zero;
+        // E 스킬 슬롯 (오른쪽으로 밀림)
+        GameObject eBgObj = new GameObject("SkillSlotE");
+        eBgObj.transform.SetParent(canvasObj.transform, false);
+        skillIconBgE = eBgObj.AddComponent<Image>();
+        skillIconBgE.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+        
+        RectTransform eRect = eBgObj.GetComponent<RectTransform>();
+        eRect.anchorMin = new Vector2(0, 0);
+        eRect.anchorMax = new Vector2(0, 0);
+        eRect.pivot = new Vector2(0, 0);
+        eRect.anchoredPosition = new Vector2(90, 20); // 20 + 60 + 10 = 90
+        eRect.sizeDelta = new Vector2(60, 60);
+
+        GameObject eTextObj = new GameObject("SkillKeyTextE");
+        eTextObj.transform.SetParent(eBgObj.transform, false);
+        skillKeyTextE = eTextObj.AddComponent<Text>();
+        skillKeyTextE.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        skillKeyTextE.fontSize = 24;
+        skillKeyTextE.color = Color.white;
+        skillKeyTextE.alignment = TextAnchor.MiddleCenter;
+        skillKeyTextE.text = "E";
+
+        RectTransform eTextRect = eTextObj.GetComponent<RectTransform>();
+        eTextRect.anchorMin = Vector2.zero;
+        eTextRect.anchorMax = Vector2.one;
+        eTextRect.sizeDelta = Vector2.zero;
     }
 
     public void UpdateLevelText(int level)
