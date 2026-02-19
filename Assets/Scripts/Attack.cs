@@ -265,30 +265,38 @@ public class Attack : MonoBehaviour
             }
             else
             {
-                Debug.Log("[Attack] 4b. Creating Primitive...");
-                fireball = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                if (fireball != null)
-                {
-                    fireball.name = "Fireball_Primitive";
-                    fireball.transform.position = spawnPos;
-                    fireball.transform.rotation = transform.rotation;
-                    fireball.transform.localScale = Vector3.one * 0.5f;
-                    
-                    var collider = fireball.GetComponent<SphereCollider>();
-                    if (collider != null) Destroy(collider);
+                Debug.Log("[Attack] 4b. Creating Primitive with Visual Child...");
+                fireball = new GameObject("Fireball_Primitive");
+                fireball.transform.position = spawnPos;
+                fireball.transform.rotation = transform.rotation;
 
-                    BoxCollider2D col = fireball.AddComponent<BoxCollider2D>();
-                    col.isTrigger = true;
-                    
-                    Rigidbody2D rb = fireball.AddComponent<Rigidbody2D>();
+                // 시각적 요소(Sphere)를 자식으로 생성
+                GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                visual.name = "Visual";
+                visual.transform.SetParent(fireball.transform);
+                visual.transform.localPosition = Vector3.zero;
+                visual.transform.localRotation = Quaternion.identity;
+                visual.transform.localScale = Vector3.one * 0.5f;
+
+                // 자식의 3D Collider 제거
+                var sphereCollider = visual.GetComponent<SphereCollider>();
+                if (sphereCollider != null) Destroy(sphereCollider);
+
+                // 루트 오브젝트에 2D 컴포넌트 추가
+                CircleCollider2D col = fireball.AddComponent<CircleCollider2D>();
+                if (col != null) col.isTrigger = true;
+
+                Rigidbody2D rb = fireball.AddComponent<Rigidbody2D>();
+                if (rb != null)
+                {
                     rb.gravityScale = 0f;
                     rb.bodyType = RigidbodyType2D.Kinematic;
-
-                    fireball.AddComponent<Fireball>();
-                    
-                    Renderer rend = fireball.GetComponent<Renderer>();
-                    if (rend != null) rend.material.color = Color.red;
                 }
+
+                fireball.AddComponent<Fireball>();
+                
+                Renderer rend = visual.GetComponent<Renderer>();
+                if (rend != null) rend.material.color = Color.red;
             }
 
             if (fireball != null)
