@@ -22,6 +22,10 @@ public class Attack : MonoBehaviour
     private float lastFireballTime = -100f;
     public GameObject fireballPrefab;
 
+    [Header("Skill Unlock Status")]
+    public bool hasFireball = false;
+    public bool hasSpin = false;
+
     public float FireballCooldownRemaining => Mathf.Max(0, (lastFireballTime + fireballCooldown) - Time.time);
     public float SkillCooldownRemaining => Mathf.Max(0, (lastSkillTime + skillCooldown) - Time.time);
 
@@ -214,6 +218,7 @@ public class Attack : MonoBehaviour
 
     private void TryStartFireball()
     {
+        if (!hasFireball) return;
         if (moveScript == null) InitializeComponents();
         if (!isAttacking && !isSpinning_internal && !isGuarding && Time.time >= lastFireballTime + fireballCooldown && leftArm != null)
         {
@@ -349,6 +354,7 @@ public class Attack : MonoBehaviour
 
     private void TryStartSkill()
     {
+        if (!hasSpin) return;
         if (moveScript == null) InitializeComponents();
         if (!isAttacking && !isSpinning_internal && !isGuarding && Time.time >= lastSkillTime + skillCooldown && weapon != null)
         {

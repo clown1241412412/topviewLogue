@@ -27,6 +27,8 @@ public class LevelManager : MonoBehaviour
         }
 
         CreateEXPBar();
+        EnsureEventSystem();
+        CreateDebugUI();
     }
 
     void CreateEXPBar()
@@ -91,6 +93,18 @@ public class LevelManager : MonoBehaviour
         
         Debug.Log("Level Up! New Level: " + level);
 
+        // SkillSelector 찾기 (없으면 생성)
+        if (SkillSelector.Instance == null)
+        {
+            GameObject selectorObj = new GameObject("SkillSelector");
+            selectorObj.AddComponent<SkillSelector>();
+        }
+
+        // 스킬 선택 창 띄우기
+        SkillSelector.Instance.ShowSelection(() => {
+            Debug.Log("Skill selection complete for level " + level);
+        });
+
         // Player 찾기
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
@@ -121,6 +135,59 @@ public class LevelManager : MonoBehaviour
             // 여기서는 앵커 조절 방식으로 구현
             RectTransform fillRect = expBarFill.GetComponent<RectTransform>();
             fillRect.anchorMax = new Vector2(ratio, 1);
+        }
+    }
+
+    void CreateDebugUI()
+    {
+        if (canvasObj == null) return;
+
+        // Level Up Button (오른쪽 하단)
+        GameObject btnObj = new GameObject("LevelUpCheatButton");
+        btnObj.transform.SetParent(canvasObj.transform, false);
+        
+        Image img = btnObj.AddComponent<Image>();
+        img.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+        
+        Button btn = btnObj.AddComponent<Button>();
+        btn.onClick.AddListener(() => {
+            Debug.Log("[Cheat] Level Up button clicked!");
+            // 현재 필요 경험치만큼 더해서 즉시 레벨업
+            AddExp(requiredExp - currentExp);
+        });
+
+        RectTransform rect = btnObj.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(1, 0); // 우측 하단
+        rect.anchorMax = new Vector2(1, 0);
+        rect.pivot = new Vector2(1, 0);
+        rect.anchoredPosition = new Vector2(-20, 20); // 여백
+        rect.sizeDelta = new Vector2(120, 40);
+
+        GameObject textObj = new GameObject("Text");
+        textObj.transform.SetParent(btnObj.transform, false);
+        Text t = textObj.AddComponent<Text>();
+        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        t.fontSize = 20;
+        t.color = Color.white;
+        t.text = "Level Up";
+        t.alignment = TextAnchor.MiddleCenter;
+        
+        RectTransform tRect = textObj.GetComponent<RectTransform>();
+        tRect.anchorMin = Vector2.zero;
+        tRect.anchorMax = Vector2.one;
+        tRect.sizeDelta = Vector2.zero;
+    }
+
+    void EnsureEventSystem()
+    {
+        if (FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
+        {
+            GameObject es = new GameObject("EventSystem");
+            es.AddComponent<UnityEngine.EventSystems.EventSystem>();
+            if (Application.isEditor || true)
+            {
+                es.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+            }
         }
     }
 }

@@ -68,32 +68,46 @@ public class PlayerHealth : MonoBehaviour
         // Q Cooltime UI
         if (skillKeyTextQ != null)
         {
-            float qCool = attackScript.FireballCooldownRemaining;
-            if (qCool > 0)
+            if (!attackScript.hasFireball)
             {
-                skillKeyTextQ.text = Mathf.CeilToInt(qCool).ToString();
-                skillKeyTextQ.color = Color.gray;
+                skillKeyTextQ.text = ""; // 스킬 없음
             }
             else
             {
-                skillKeyTextQ.text = "Q";
-                skillKeyTextQ.color = Color.white;
+                float qCool = attackScript.FireballCooldownRemaining;
+                if (qCool > 0)
+                {
+                    skillKeyTextQ.text = Mathf.CeilToInt(qCool).ToString();
+                    skillKeyTextQ.color = Color.gray;
+                }
+                else
+                {
+                    skillKeyTextQ.text = "Q";
+                    skillKeyTextQ.color = Color.white;
+                }
             }
         }
 
         // E Cooltime UI
         if (skillKeyTextE != null)
         {
-            float eCool = attackScript.SkillCooldownRemaining;
-            if (eCool > 0)
+            if (!attackScript.hasSpin)
             {
-                skillKeyTextE.text = Mathf.CeilToInt(eCool).ToString();
-                skillKeyTextE.color = Color.gray;
+                skillKeyTextE.text = ""; // 스킬 없음
             }
             else
             {
-                skillKeyTextE.text = "E";
-                skillKeyTextE.color = Color.white;
+                float eCool = attackScript.SkillCooldownRemaining;
+                if (eCool > 0)
+                {
+                    skillKeyTextE.text = Mathf.CeilToInt(eCool).ToString();
+                    skillKeyTextE.color = Color.gray;
+                }
+                else
+                {
+                    skillKeyTextE.text = "E";
+                    skillKeyTextE.color = Color.white;
+                }
             }
         }
     }
