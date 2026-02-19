@@ -4,7 +4,7 @@ public class Fireball : MonoBehaviour
 {
     public float speed = 10f;
     public int damage = 2;
-    public float lifeTime = 3f;
+    public float lifeTime = 1f;
 
     void Start()
     {

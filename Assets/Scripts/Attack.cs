@@ -16,11 +16,14 @@ public class Attack : MonoBehaviour
     [Header("Skill Settings")]
     public float spinDuration = 5.0f;
     public float hitResetInterval = 0.3f; // 얼마나 자주 다시 때릴지
-    public float skillCooldown = 3f;
+    public float skillCooldown = 5f;
     private float lastSkillTime = -100f;
-    public float fireballCooldown = 2f;
+    public float fireballCooldown = 3f;
     private float lastFireballTime = -100f;
     public GameObject fireballPrefab;
+
+    public float FireballCooldownRemaining => Mathf.Max(0, (lastFireballTime + fireballCooldown) - Time.time);
+    public float SkillCooldownRemaining => Mathf.Max(0, (lastSkillTime + skillCooldown) - Time.time);
 
     public void IncreaseDamage(int amount)
     {
@@ -228,7 +231,6 @@ public class Attack : MonoBehaviour
         lastFireballTime = Time.time;
         // isAttacking = true; (TryStartFireball에서 이미 설정)
 
-        if (moveScript != null) moveScript.canRotate = false;
 
         try
         {
@@ -340,11 +342,6 @@ public class Attack : MonoBehaviour
                 leftArm.localPosition = lArmInitialPos;
                 Debug.Log("[Attack] 7.2: LeftArm position reset");
             }
-            if (moveScript != null) 
-            {
-                moveScript.canRotate = true;
-                Debug.Log("[Attack] 7.3: moveScript.canRotate reset");
-            }
             isAttacking = false;
             Debug.Log("[Attack] 7.4: isAttacking reset complete");
         }
@@ -366,9 +363,7 @@ public class Attack : MonoBehaviour
     IEnumerator PerformSpinAttack()
     {
         // isSpinning_internal = true; (TryStartSkill에서 이미 설정)
-        lastSkillTime = Time.time;
 
-        if (moveScript != null) moveScript.canRotate = false; // 회전 고정
 
         if (weaponController != null)
         {
@@ -447,8 +442,8 @@ public class Attack : MonoBehaviour
             weaponController.EndAttack();
         }
 
-        if (moveScript != null) moveScript.canRotate = true; // 회전 복구
         isSpinning_internal = false;
+        lastSkillTime = Time.time; // 스킬 종료 후 쿨타임 시작
     }
 
     IEnumerator PerformAttack()

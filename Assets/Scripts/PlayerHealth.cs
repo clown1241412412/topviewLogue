@@ -30,8 +30,13 @@ public class PlayerHealth : MonoBehaviour
     private Text skillKeyTextQ;
     private Text skillKeyTextE;
 
+    private Attack attackScript;
+
     void Start()
     {
+        attackScript = GetComponent<Attack>();
+        if (attackScript == null) attackScript = GetComponentInParent<Attack>();
+
         // LevelManager 자동 생성 (없을 경우)
         if (LevelManager.Instance == null)
         {
@@ -49,6 +54,48 @@ public class PlayerHealth : MonoBehaviour
 
         CreateHPBar();
         CreateSkillUI();
+    }
+
+    void Update()
+    {
+        UpdateSkillUI();
+    }
+
+    void UpdateSkillUI()
+    {
+        if (attackScript == null) return;
+
+        // Q Cooltime UI
+        if (skillKeyTextQ != null)
+        {
+            float qCool = attackScript.FireballCooldownRemaining;
+            if (qCool > 0)
+            {
+                skillKeyTextQ.text = Mathf.CeilToInt(qCool).ToString();
+                skillKeyTextQ.color = Color.gray;
+            }
+            else
+            {
+                skillKeyTextQ.text = "Q";
+                skillKeyTextQ.color = Color.white;
+            }
+        }
+
+        // E Cooltime UI
+        if (skillKeyTextE != null)
+        {
+            float eCool = attackScript.SkillCooldownRemaining;
+            if (eCool > 0)
+            {
+                skillKeyTextE.text = Mathf.CeilToInt(eCool).ToString();
+                skillKeyTextE.color = Color.gray;
+            }
+            else
+            {
+                skillKeyTextE.text = "E";
+                skillKeyTextE.color = Color.white;
+            }
+        }
     }
 
     void CreateHPBar()
