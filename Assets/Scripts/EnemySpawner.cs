@@ -162,7 +162,13 @@ public class EnemySpawner : MonoBehaviour
     void SpawnEnemy()
     {
         Vector3 spawnPos = GetSafeSpawnPosition();
-        Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
+        GameObject enemyObj = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
+        
+        Enemy enemy = enemyObj.GetComponent<Enemy>();
+        if (enemy != null)
+        {
+            enemy.SetHPByWave(currentWave);
+        }
     }
 
     public void OnEnemyKilled()

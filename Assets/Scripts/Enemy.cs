@@ -19,7 +19,8 @@ public class Enemy : MonoBehaviour
 
     void Start()
     {
-        currentHP = maxHP;
+        // currentHP 초기화는 Spawner에서 SetHPByWave를 호출하므로 삭제하거나 기본값 유지
+        if (currentHP <= 0) currentHP = maxHP;
 
         // 충돌 감지를 위해 Rigidbody2D 필수 (Kinematic)
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
@@ -203,6 +204,14 @@ public class Enemy : MonoBehaviour
             // 왼쪽부터 줄어들도록 위치 조정
             hpBarFill.transform.localPosition = new Vector3(-(1f - ratio) / 2f, 0, 0);
         }
+    }
+
+    public void SetHPByWave(int wave)
+    {
+        // 기본 체력 2 + 2개 웨이브마다 1씩 증가
+        maxHP = 2 + (wave - 1) / 2;
+        currentHP = maxHP;
+        UpdateHPBar();
     }
 
     void OnDrawGizmosSelected()
