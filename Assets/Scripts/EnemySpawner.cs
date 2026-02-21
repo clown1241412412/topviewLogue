@@ -184,6 +184,20 @@ public class EnemySpawner : MonoBehaviour
         }
     }
 
+    public void SkipWave()
+    {
+        if (!isWaveActive) return;
+
+        // 모든 적 제거
+        Enemy[] allEnemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+        foreach (Enemy e in allEnemies)
+        {
+            Destroy(e.gameObject);
+        }
+
+        EndWave();
+    }
+
     void EndWave()
     {
         isWaveActive = false;

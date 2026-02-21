@@ -176,6 +176,43 @@ public class LevelManager : MonoBehaviour
         tRect.anchorMin = Vector2.zero;
         tRect.anchorMax = Vector2.one;
         tRect.sizeDelta = Vector2.zero;
+
+        // Next Wave Button (Level Up 버튼 위에)
+        GameObject skipBtnObj = new GameObject("SkipWaveCheatButton");
+        skipBtnObj.transform.SetParent(canvasObj.transform, false);
+        
+        Image skipImg = skipBtnObj.AddComponent<Image>();
+        skipImg.color = new Color(0.3f, 0.1f, 0.1f, 0.8f); // 약간 붉은 계열
+        
+        Button skipBtn = skipBtnObj.AddComponent<Button>();
+        skipBtn.onClick.AddListener(() => {
+            if (EnemySpawner.Instance != null)
+            {
+                Debug.Log("[Cheat] Next Wave button clicked!");
+                EnemySpawner.Instance.SkipWave();
+            }
+        });
+
+        RectTransform skipRect = skipBtnObj.GetComponent<RectTransform>();
+        skipRect.anchorMin = new Vector2(1, 0);
+        skipRect.anchorMax = new Vector2(1, 0);
+        skipRect.pivot = new Vector2(1, 0);
+        skipRect.anchoredPosition = new Vector2(-20, 70); // Level Up 버튼 위
+        skipRect.sizeDelta = new Vector2(120, 40);
+
+        GameObject skipTextObj = new GameObject("Text");
+        skipTextObj.transform.SetParent(skipBtnObj.transform, false);
+        Text skipT = skipTextObj.AddComponent<Text>();
+        skipT.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        skipT.fontSize = 20;
+        skipT.color = Color.white;
+        skipT.text = "Next Wave";
+        skipT.alignment = TextAnchor.MiddleCenter;
+        
+        RectTransform skipTRect = skipTextObj.GetComponent<RectTransform>();
+        skipTRect.anchorMin = Vector2.zero;
+        skipTRect.anchorMax = Vector2.one;
+        skipTRect.sizeDelta = Vector2.zero;
     }
 
     void EnsureEventSystem()
