@@ -23,6 +23,11 @@ public class EnemySpawner : MonoBehaviour
 
     private int enemiesToDefeat;
     private int enemiesDefeated;
+    private int regularsToSpawn;
+    private int elitesToSpawn;
+    private int regularsSpawned;
+    private int elitesSpawned;
+
     private bool isWaveActive = false;
     private float timer;
 
@@ -126,9 +131,18 @@ public class EnemySpawner : MonoBehaviour
     void StartWave(int wave)
     {
         currentWave = wave;
-        // 적 수 증가 (+10씩)
-        enemiesToDefeat = enemiesPerWaveBase + (wave - 1) * 10; 
+        
+        // 일반 적 수
+        regularsToSpawn = enemiesPerWaveBase + (wave - 1) * 10;
+        
+        // 엘리트 적 수 (웨이브 3부터 일반 적의 0.5배)
+        elitesToSpawn = (wave >= 3) ? regularsToSpawn / 2 : 0;
+        
+        enemiesToDefeat = regularsToSpawn + elitesToSpawn;
         enemiesDefeated = 0;
+        regularsSpawned = 0;
+        elitesSpawned = 0;
+
         isWaveActive = true;
         
         UpdateCountUI();
@@ -137,7 +151,7 @@ public class EnemySpawner : MonoBehaviour
         float currentSpawnInterval = 3f / Mathf.Pow(1.5f, wave - 1);
         spawnInterval = Mathf.Max(0.2f, currentSpawnInterval);
 
-        Debug.Log("Wave " + wave + " Start! Goal: " + enemiesToDefeat + ", Interval: " + spawnInterval);
+        Debug.Log("Wave " + wave + " Start! Regulars: " + regularsToSpawn + ", Elites: " + elitesToSpawn + ", Interval: " + spawnInterval);
     }
 
     void Update()
@@ -149,17 +163,24 @@ public class EnemySpawner : MonoBehaviour
         {
             timer = 0f;
             
-            // 한번에 여러 마리 나오게 (웨이브 번호만큼 스폰)
+            // 한번에 여러 마리 나오게 (웨이브 번호만큼 스폰 시도)
             int spawnCount = currentWave; 
 
             for(int i=0; i<spawnCount; i++)
             {
-                 SpawnEnemy();
+                if (isWaveActive)
+                {
+                    // 웨이브 3부터 엘리트 스폰 확률 (웨이브가 지날수록 증가, 최대 33%)
+                    float eliteChance = (currentWave >= 3) ? Mathf.Min(0.33f, 0.1f + (currentWave - 3) * 0.05f) : 0f;
+                    bool spawnElite = Random.value < eliteChance;
+                    
+                    SpawnEnemy(spawnElite);
+                }
             }
         }
     }
 
-    void SpawnEnemy()
+    void SpawnEnemy(bool isElite = false)
     {
         Vector3 spawnPos = GetSafeSpawnPosition();
         GameObject enemyObj = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
@@ -167,6 +188,7 @@ public class EnemySpawner : MonoBehaviour
         Enemy enemy = enemyObj.GetComponent<Enemy>();
         if (enemy != null)
         {
+            if (isElite) enemy.SetElite(true);
             enemy.SetHPByWave(currentWave);
         }
     }
@@ -202,6 +224,13 @@ public class EnemySpawner : MonoBehaviour
     {
         isWaveActive = false;
         Debug.Log("Wave " + currentWave + " Cleared!");
+
+        // 화면에 남은 모든 적 제거
+        Enemy[] remainingEnemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+        foreach (Enemy e in remainingEnemies)
+        {
+            if (e != null) Destroy(e.gameObject);
+        }
         
         // 다음 웨이브 준비
         StartCoroutine(StartWaveRoutine(currentWave + 1));

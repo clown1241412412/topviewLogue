@@ -113,7 +113,7 @@ public class LevelManager : MonoBehaviour
             PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
             if (playerHealth != null)
             {
-                playerHealth.IncreaseMaxHP(20);
+                playerHealth.IncreaseMaxHP(10);
                 playerHealth.UpdateLevelText(level);
             }
 

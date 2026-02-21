@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 public class PlayerHealth : MonoBehaviour
 {
-    public int maxHP = 100;
+    public int maxHP = 60;
     public int currentHP;
     public float flashDuration = 0.3f;
 

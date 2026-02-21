@@ -13,12 +13,17 @@ public class Enemy : MonoBehaviour
     private float activateDelay = 0.5f;
     private bool canHit = false;
 
+    // 엘리트 관련
+    public bool isElite = false;
+    private SpriteRenderer mainRenderer;
+
     // HP바 관련
     private GameObject hpBarBG;
     private GameObject hpBarFill;
 
     void Start()
     {
+        mainRenderer = GetComponent<SpriteRenderer>();
         // currentHP 초기화는 Spawner에서 SetHPByWave를 호출하므로 삭제하거나 기본값 유지
         if (currentHP <= 0) currentHP = maxHP;
 
@@ -153,12 +158,14 @@ public class Enemy : MonoBehaviour
                 }
                 else
                 {
-                    // 피격 성공
+                    // 플레이어에게 데미지 입힘
                     PlayerHealth health = player.GetComponent<PlayerHealth>();
                     if (health != null)
                     {
                         health.TakeDamage(contactDamage);
                     }
+
+                    // 자폭 시에는 웨이브 처치 카운트에서 제외 (사용자 요청)
                     Destroy(gameObject);
                 }
             }
@@ -182,7 +189,8 @@ public class Enemy : MonoBehaviour
             // 경험치 지급
             if (LevelManager.Instance != null)
             {
-                LevelManager.Instance.AddExp(1);
+                // 엘리트는 경험치 2배
+                LevelManager.Instance.AddExp(isElite ? 2 : 1);
             }
 
             // 웨이브 킬 카운트 업데이트
@@ -208,10 +216,39 @@ public class Enemy : MonoBehaviour
 
     public void SetHPByWave(int wave)
     {
-        // 기본 체력 2 + 2개 웨이브마다 1씩 증가
-        maxHP = 2 + (wave - 1) / 2;
+        // 기본 체력 2 + 매 웨이브마다 1씩 증가 (기존: 2웨이브마다 1증가)
+        maxHP = 2 + (wave - 1);
+        
+        // 데미지 성장: 5개 웨이브마다 1씩 증가
+        contactDamage = 1 + (wave - 1) / 5;
+
+        // 엘리트라면 체력/데미지 2배
+        if (isElite)
+        {
+            maxHP *= 2;
+            contactDamage *= 2;
+        }
+
         currentHP = maxHP;
         UpdateHPBar();
+    }
+
+    public void SetElite(bool elite)
+    {
+        isElite = elite;
+        if (isElite)
+        {
+            // 초록색으로 변경
+            if (mainRenderer == null) mainRenderer = GetComponent<SpriteRenderer>();
+            if (mainRenderer != null) mainRenderer.color = Color.green;
+            
+            // 크기 1.5배
+            transform.localScale = Vector3.one * 1.5f;
+
+            // 이미 SetHPByWave가 호출되었을 상황을 대비해 데미지/체력 보정
+            // (체력은 SetHPByWave에서 이미 처리됨)
+            // 배율은 2배 유지
+        }
     }
 
     void OnDrawGizmosSelected()
