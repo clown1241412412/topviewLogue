@@ -25,9 +25,17 @@ public class Attack : MonoBehaviour
     [Header("Skill Unlock Status")]
     public bool hasFireball = false;
     public bool hasSpin = false;
+    public bool hasSwordWave = false;
+
+    [Header("Buff Status")]
+    private float swordWaveRemainingTime = 0f;
+    public float swordWaveDuration = 5f;
+    public float swordWaveCooldown = 8f;
+    private float lastSwordWaveTime = -100f;
 
     public float FireballCooldownRemaining => Mathf.Max(0, (lastFireballTime + fireballCooldown) - Time.time);
     public float SkillCooldownRemaining => Mathf.Max(0, (lastSkillTime + skillCooldown) - Time.time);
+    public float SwordWaveCooldownRemaining => Mathf.Max(0, (lastSwordWaveTime + swordWaveCooldown) - Time.time);
 
     public void IncreaseDamage(int amount)
     {
@@ -159,6 +167,13 @@ public class Attack : MonoBehaviour
             // 특정 키가 null일 수 있는 예외 상황 대비
             if (kb.eKey != null && kb.eKey.wasPressedThisFrame) TryStartSkill();
             if (kb.qKey != null && kb.qKey.wasPressedThisFrame) TryStartFireball();
+            if (kb.rKey != null && kb.rKey.wasPressedThisFrame) TryStartSwordWave();
+        }
+
+        // Sword Wave 버프 타이머 업데이트
+        if (swordWaveRemainingTime > 0)
+        {
+            swordWaveRemainingTime -= Time.deltaTime;
         }
 
         // 4. 마우스 입력 처리 (가드)
@@ -475,6 +490,12 @@ public class Attack : MonoBehaviour
                 yield return null;
             }
 
+            // Sword Wave 발사
+            if (swordWaveRemainingTime > 0)
+            {
+                SpawnSwordWave();
+            }
+
             weapon.localRotation = endRot;
             yield return null;
         }
@@ -491,6 +512,89 @@ public class Attack : MonoBehaviour
     {
         yield return new WaitForSeconds(cooldown);
         isAttacking = false;
+    }
+
+    private void TryStartSwordWave()
+    {
+        if (!hasSwordWave) return;
+        if (Time.time >= lastSwordWaveTime + swordWaveCooldown)
+        {
+            swordWaveRemainingTime = swordWaveDuration;
+            lastSwordWaveTime = Time.time;
+            Debug.Log("[Skill] Sword Wave Activated! Duration: " + swordWaveDuration);
+        }
+    }
+
+    private void SpawnSwordWave()
+    {
+        Vector3 spawnPos = transform.position + transform.up * 0.5f;
+        GameObject waveObj = new GameObject("SwordWave_Crescent");
+        waveObj.transform.position = spawnPos;
+        waveObj.transform.rotation = transform.rotation;
+
+        // SpriteRenderer 사용
+        SpriteRenderer sr = waveObj.AddComponent<SpriteRenderer>();
+        sr.sprite = GenerateCrescentSprite();
+        sr.color = new Color(0.4f, 0.9f, 1f, 0.8f); // 밝은 시안색
+        sr.sortingOrder = 5;
+
+        // 회전: 플레이어가 바라보는 방향(transform.rotation) 그대로 사용
+        waveObj.transform.rotation = transform.rotation;
+
+        // 크기 조정 (가로로 매우 넓고, 세로 비율을 조금 높여 곡선미를 살림)
+        waveObj.transform.localScale = new Vector3(5.0f, 2.0f, 1f);
+
+        // 컴포넌트 추가
+        CircleCollider2D col = waveObj.AddComponent<CircleCollider2D>();
+        col.isTrigger = true;
+        col.radius = 0.4f;
+
+        Rigidbody2D rb = waveObj.AddComponent<Rigidbody2D>();
+        rb.gravityScale = 0f;
+        rb.bodyType = RigidbodyType2D.Kinematic;
+
+        SwordWave swScript = waveObj.AddComponent<SwordWave>();
+        // 데미지: 플레이어 공격력의 1.5배 (올림 처리)
+        swScript.damage = Mathf.CeilToInt(attackDamage * 1.5f);
+        // 사거리: 약 10유닛 (맵 너비 20의 절반) -> 12 * 0.85 = 10.2
+        swScript.speed = 12f;
+        swScript.lifeTime = 0.85f;
+    }
+
+    private Sprite GenerateCrescentSprite()
+    {
+        int size = 64;
+        Texture2D tex = new Texture2D(size, size);
+        Color transparent = new Color(0, 0, 0, 0);
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = (x - (size / 2f)) / (size / 2f);
+                float dy = (y - (size / 2f)) / (size / 2f);
+                float dist = Mathf.Sqrt(dx * dx + dy * dy);
+
+                // 바깥 원 (반지름 0.9) 안쪽 원 (반지름 1.0, 중심을 아래쪽으로 더 이동)
+                bool inOuter = dist < 0.9f;
+                float innerDy = dy + 0.7f; // 중심을 아래쪽(Y-)으로 더 이동시켜 깊은 반달 생성
+                float innerDist = Mathf.Sqrt(dx * dx + innerDy * innerDy);
+                bool inInner = innerDist < 1.0f; // 안쪽 원의 반지름을 키워 더 가늘고 굽은 모양으로
+
+                if (inOuter && !inInner)
+                {
+                    // 가장자리 페이드 아웃 (곡선 끝부분 처리)
+                    float alpha = Mathf.Clamp01((0.9f - dist) * 10f) * Mathf.Clamp01((innerDist - 0.6f) * 5f);
+                    tex.SetPixel(x, y, new Color(1, 1, 1, alpha));
+                }
+                else
+                {
+                    tex.SetPixel(x, y, transparent);
+                }
+            }
+        }
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
     }
 
 

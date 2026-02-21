@@ -27,8 +27,10 @@ public class PlayerHealth : MonoBehaviour
     private Text damageText;
     private Image skillIconBgQ;
     private Image skillIconBgE;
+    private Image skillIconBgR;
     private Text skillKeyTextQ;
     private Text skillKeyTextE;
+    private Text skillKeyTextR;
 
     private Attack attackScript;
 
@@ -107,6 +109,29 @@ public class PlayerHealth : MonoBehaviour
                 {
                     skillKeyTextE.text = "E";
                     skillKeyTextE.color = Color.white;
+                }
+            }
+        }
+
+        // R Cooltime UI
+        if (skillKeyTextR != null)
+        {
+            if (!attackScript.hasSwordWave)
+            {
+                skillKeyTextR.text = ""; // 스킬 없음
+            }
+            else
+            {
+                float rCool = attackScript.SwordWaveCooldownRemaining;
+                if (rCool > 0)
+                {
+                    skillKeyTextR.text = Mathf.CeilToInt(rCool).ToString();
+                    skillKeyTextR.color = Color.gray;
+                }
+                else
+                {
+                    skillKeyTextR.text = "R";
+                    skillKeyTextR.color = Color.white;
                 }
             }
         }
@@ -257,6 +282,33 @@ public class PlayerHealth : MonoBehaviour
         eTextRect.anchorMin = Vector2.zero;
         eTextRect.anchorMax = Vector2.one;
         eTextRect.sizeDelta = Vector2.zero;
+
+        // R 스킬 슬롯 (E 옆에)
+        GameObject rBgObj = new GameObject("SkillSlotR");
+        rBgObj.transform.SetParent(canvasObj.transform, false);
+        skillIconBgR = rBgObj.AddComponent<Image>();
+        skillIconBgR.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+        
+        RectTransform rRect = rBgObj.GetComponent<RectTransform>();
+        rRect.anchorMin = new Vector2(0, 0);
+        rRect.anchorMax = new Vector2(0, 0);
+        rRect.pivot = new Vector2(0, 0);
+        rRect.anchoredPosition = new Vector2(160, 20); // 90 + 60 + 10 = 160
+        rRect.sizeDelta = new Vector2(60, 60);
+
+        GameObject rTextObj = new GameObject("SkillKeyTextR");
+        rTextObj.transform.SetParent(rBgObj.transform, false);
+        skillKeyTextR = rTextObj.AddComponent<Text>();
+        skillKeyTextR.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        skillKeyTextR.fontSize = 24;
+        skillKeyTextR.color = Color.white;
+        skillKeyTextR.alignment = TextAnchor.MiddleCenter;
+        skillKeyTextR.text = "R";
+
+        RectTransform rTextRect = rTextObj.GetComponent<RectTransform>();
+        rTextRect.anchorMin = Vector2.zero;
+        rTextRect.anchorMax = Vector2.one;
+        rTextRect.sizeDelta = Vector2.zero;
     }
 
     public void UpdateLevelText(int level)
