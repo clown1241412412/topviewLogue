@@ -25,8 +25,6 @@ public class EnemySpawner : MonoBehaviour
     private int enemiesDefeated;
     private int regularsToSpawn;
     private int elitesToSpawn;
-    private int regularsSpawned;
-    private int elitesSpawned;
 
     private bool isWaveActive = false;
     private float timer;
@@ -131,17 +129,24 @@ public class EnemySpawner : MonoBehaviour
     void StartWave(int wave)
     {
         currentWave = wave;
-        
-        // 일반 적 수
-        regularsToSpawn = enemiesPerWaveBase + (wave - 1) * 10;
-        
-        // 엘리트 적 수 (웨이브 3부터 일반 적의 0.5배)
-        elitesToSpawn = (wave >= 3) ? regularsToSpawn / 2 : 0;
-        
-        enemiesToDefeat = regularsToSpawn + elitesToSpawn;
+        if (wave == 5)
+        {
+            regularsToSpawn = 0;
+            elitesToSpawn = 0;
+            enemiesToDefeat = 1;
+        }
+        else
+        {
+            // 일반 적 수
+            regularsToSpawn = enemiesPerWaveBase + (wave - 1) * 10;
+            
+            // 엘리트 적 수 (웨이브 3부터 일반 적의 0.5배)
+            elitesToSpawn = (wave >= 3) ? regularsToSpawn / 2 : 0;
+            
+            enemiesToDefeat = regularsToSpawn + elitesToSpawn;
+        }
+
         enemiesDefeated = 0;
-        regularsSpawned = 0;
-        elitesSpawned = 0;
 
         isWaveActive = true;
         
@@ -154,9 +159,21 @@ public class EnemySpawner : MonoBehaviour
         Debug.Log("Wave " + wave + " Start! Regulars: " + regularsToSpawn + ", Elites: " + elitesToSpawn + ", Interval: " + spawnInterval);
     }
 
+    private bool bossSpawned = false;
+
     void Update()
     {
         if (!isWaveActive || enemyPrefab == null) return;
+
+        // Wave 5 보스 스폰 로직
+        if (currentWave == 5 && !bossSpawned)
+        {
+            bossSpawned = true;
+            SpawnEnemy(false, true); // 보스 스폰
+            return;
+        }
+
+        if (currentWave == 5) return; // 보스 웨이브에서는 일반 스폰 안함
 
         timer += Time.deltaTime;
         if (timer >= spawnInterval)
@@ -180,7 +197,7 @@ public class EnemySpawner : MonoBehaviour
         }
     }
 
-    void SpawnEnemy(bool isElite = false)
+    void SpawnEnemy(bool isElite = false, bool isBoss = false)
     {
         Vector3 spawnPos = GetSafeSpawnPosition();
         GameObject enemyObj = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
@@ -188,8 +205,9 @@ public class EnemySpawner : MonoBehaviour
         Enemy enemy = enemyObj.GetComponent<Enemy>();
         if (enemy != null)
         {
-            if (isElite) enemy.SetElite(true);
-            enemy.SetHPByWave(currentWave);
+            enemy.SetHPByWave(currentWave); // 1. 베이스 스탯 먼저 설정
+            if (isElite) enemy.SetElite(true); // 2. 엘리티 보정
+            if (isBoss) enemy.SetBoss(true); // 3. 보스 보정 (최종)
         }
     }
 

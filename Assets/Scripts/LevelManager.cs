@@ -1,8 +1,10 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class LevelManager : MonoBehaviour
 {
+    // ... (기존 코드 유지)
     public static LevelManager Instance;
 
     public int level = 1;
@@ -13,6 +15,11 @@ public class LevelManager : MonoBehaviour
     // UI Components
     private GameObject canvasObj;
     private Image expBarFill;
+    
+    // Boss HP Bar UI
+    private GameObject bossHPBarObj;
+    private Image bossHPFill;
+    private Text bossHPText;
 
     void Awake()
     {
@@ -26,6 +33,7 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
+        Time.timeScale = 1; // 씬 시작 시 시간 흐름 보장
         CreateEXPBar();
         EnsureEventSystem();
         CreateDebugUI();
@@ -215,16 +223,172 @@ public class LevelManager : MonoBehaviour
         skipTRect.sizeDelta = Vector2.zero;
     }
 
+    public void GameOver(bool isWin = false)
+    {
+        // 중복 생성 방지
+        if (GameObject.Find("GameOverPanel") != null) return;
+
+        // 1. 게임 일시 정지
+        Time.timeScale = 0;
+
+        // 2. 배경 페널 생성 (검은색)
+        GameObject gameOverPanel = new GameObject("GameOverPanel");
+        gameOverPanel.transform.SetParent(canvasObj.transform, false);
+        Image panelImage = gameOverPanel.AddComponent<Image>();
+        panelImage.color = new Color(0, 0, 0, 0.9f); 
+        panelImage.raycastTarget = true;
+
+        RectTransform panelRect = gameOverPanel.GetComponent<RectTransform>();
+        panelRect.anchorMin = Vector2.zero;
+        panelRect.anchorMax = Vector2.one;
+        panelRect.offsetMin = Vector2.zero;
+        panelRect.offsetMax = Vector2.zero;
+        gameOverPanel.transform.SetAsLastSibling();
+
+        // 3. GAME END 텍스트 생성
+        GameObject textObj = new GameObject("GameOverText");
+        textObj.transform.SetParent(gameOverPanel.transform, false);
+        Text t = textObj.AddComponent<Text>();
+        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        t.fontSize = 80;
+        t.color = isWin ? Color.yellow : Color.red;
+        t.text = isWin ? "VICTORY!" : "GAME OVER";
+        t.alignment = TextAnchor.MiddleCenter;
+        t.raycastTarget = false; 
+
+        RectTransform textRect = textObj.GetComponent<RectTransform>();
+        textRect.anchorMin = new Vector2(0.5f, 0.5f);
+        textRect.anchorMax = new Vector2(0.5f, 0.5f);
+        textRect.pivot = new Vector2(0.5f, 0.5f);
+        textRect.anchoredPosition = new Vector2(0, 80);
+        textRect.sizeDelta = new Vector2(600, 100);
+
+        // 4. 재시작 버튼 생성
+        GameObject btnObj = new GameObject("RestartButton");
+        btnObj.transform.SetParent(gameOverPanel.transform, false);
+        
+        Image img = btnObj.AddComponent<Image>();
+        img.color = new Color(0.2f, 0.8f, 0.2f, 1.0f); 
+        
+        Button btn = btnObj.AddComponent<Button>();
+        btn.targetGraphic = img; // 확실하게 지정
+        btn.onClick.AddListener(RestartGame);
+
+        RectTransform rect = btnObj.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = new Vector2(0, -70); // 텍스트 아래
+        rect.sizeDelta = new Vector2(200, 60);
+
+        GameObject btnTextObj = new GameObject("Text");
+        btnTextObj.transform.SetParent(btnObj.transform, false);
+        Text bt = btnTextObj.AddComponent<Text>();
+        bt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        bt.fontSize = 30;
+        bt.color = Color.white;
+        bt.text = "RESTART";
+        bt.alignment = TextAnchor.MiddleCenter;
+        
+        RectTransform btRect = btnTextObj.GetComponent<RectTransform>();
+        btRect.anchorMin = Vector2.zero;
+        btRect.anchorMax = Vector2.one;
+        btRect.sizeDelta = Vector2.zero;
+    }
+
+    public void RestartGame()
+    {
+        Debug.Log("RestartGame called!");
+        Time.timeScale = 1; // 시간 흐름 복구
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    public void CreateBossHPBar(int maxHP)
+    {
+        if (bossHPBarObj != null) Destroy(bossHPBarObj);
+
+        // 1. Boss HP Bar 배경
+        bossHPBarObj = new GameObject("BossHPBarBG");
+        bossHPBarObj.transform.SetParent(canvasObj.transform, false);
+        Image bgImage = bossHPBarObj.AddComponent<Image>();
+        bgImage.color = new Color(0.1f, 0.1f, 0.1f, 0.9f);
+        
+        RectTransform bgRect = bossHPBarObj.GetComponent<RectTransform>();
+        bgRect.anchorMin = new Vector2(0.5f, 1);
+        bgRect.anchorMax = new Vector2(0.5f, 1);
+        bgRect.pivot = new Vector2(0.5f, 1);
+        bgRect.anchoredPosition = new Vector2(0, -60); // EXP바 아래, Wave Count 아래 쯤
+        bgRect.sizeDelta = new Vector2(600, 40);
+
+        // 2. Boss HP Bar 채우기 (빨간색)
+        GameObject fillObj = new GameObject("BossHPFill");
+        fillObj.transform.SetParent(bossHPBarObj.transform, false);
+        bossHPFill = fillObj.AddComponent<Image>();
+        bossHPFill.color = new Color(0.8f, 0.1f, 0.1f, 1f);
+        
+        RectTransform fillRect = fillObj.GetComponent<RectTransform>();
+        fillRect.anchorMin = new Vector2(0, 0);
+        fillRect.anchorMax = new Vector2(1, 1);
+        fillRect.pivot = new Vector2(0.5f, 0.5f);
+        fillRect.offsetMin = Vector2.zero;
+        fillRect.offsetMax = Vector2.zero;
+
+        // 3. Boss HP 텍스트
+        GameObject hpTextObj = new GameObject("BossHPText");
+        hpTextObj.transform.SetParent(bossHPBarObj.transform, false);
+        bossHPText = hpTextObj.AddComponent<Text>();
+        bossHPText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        bossHPText.fontSize = 24;
+        bossHPText.color = Color.white;
+        bossHPText.alignment = TextAnchor.MiddleCenter;
+        bossHPText.text = maxHP + " / " + maxHP;
+
+        RectTransform hpTextRect = hpTextObj.GetComponent<RectTransform>();
+        hpTextRect.anchorMin = Vector2.zero;
+        hpTextRect.anchorMax = Vector2.one;
+        hpTextRect.sizeDelta = Vector2.zero;
+    }
+
+    public void UpdateBossHPBar(int currentHP, int maxHP)
+    {
+        if (bossHPFill != null)
+        {
+            float ratio = (float)currentHP / maxHP;
+            bossHPFill.rectTransform.anchorMax = new Vector2(ratio, 1);
+        }
+        if (bossHPText != null)
+        {
+            bossHPText.text = currentHP + " / " + maxHP;
+        }
+    }
+
+    public void HideBossHPBar()
+    {
+        if (bossHPBarObj != null)
+        {
+            bossHPBarObj.SetActive(false);
+        }
+    }
+
     void EnsureEventSystem()
     {
-        if (FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
+        UnityEngine.EventSystems.EventSystem es = FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>();
+        if (es == null)
         {
-            GameObject es = new GameObject("EventSystem");
-            es.AddComponent<UnityEngine.EventSystems.EventSystem>();
-            if (Application.isEditor || true)
+            GameObject esObj = new GameObject("EventSystem");
+            es = esObj.AddComponent<UnityEngine.EventSystems.EventSystem>();
+        }
+
+        // New Input System 사용 시 필수 모듈 체크 및 추가
+        if (es.GetComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>() == null)
+        {
+            // 기존의 StandaloneInputModule이 있다면 제거 (충돌 방지)
+            UnityEngine.EventSystems.BaseInputModule oldModule = es.GetComponent<UnityEngine.EventSystems.BaseInputModule>();
+            if (oldModule != null && !(oldModule is UnityEngine.InputSystem.UI.InputSystemUIInputModule))
             {
-                es.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+                DestroyImmediate(oldModule);
             }
+            es.gameObject.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
         }
     }
 }

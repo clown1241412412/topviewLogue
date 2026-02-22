@@ -382,7 +382,13 @@ public class PlayerHealth : MonoBehaviour
 
     void Die()
     {
-        if (canvasObj != null) Destroy(canvasObj);
-        Destroy(gameObject);
+        if (LevelManager.Instance != null)
+        {
+            LevelManager.Instance.GameOver();
+        }
+
+        // 바로 파괴하지 않고 비활성화 (기타 로직이 이번 프레임에 작동할 수 있으므로)
+        gameObject.SetActive(false);
+        if (canvasObj != null) canvasObj.SetActive(false);
     }
 }

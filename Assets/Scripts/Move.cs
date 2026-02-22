@@ -7,6 +7,12 @@ public class Move : MonoBehaviour
     public bool canRotate = true; // 스킬 사용 시 회전 제한을 위해 추가
     private Vector2 moveInput;
     private Rigidbody2D rb;
+    
+    // Knockback 관련
+    private bool isKnockedBack = false;
+    private Vector2 knockbackDir;
+    private float knockbackForce;
+    private float knockbackTimer;
 
     void Start()
     {
@@ -22,11 +28,32 @@ public class Move : MonoBehaviour
         moveInput = value.Get<Vector2>();
     }
 
+    public void ApplyKnockback(Vector2 dir, float force, float duration)
+    {
+        isKnockedBack = true;
+        knockbackDir = dir.normalized;
+        knockbackForce = force;
+        knockbackTimer = duration;
+    }
+
     void FixedUpdate()
     {
         if (rb == null) return;
-        Vector2 movement = moveInput.normalized;
-        rb.MovePosition(rb.position + movement * speed * Time.fixedDeltaTime);
+
+        if (isKnockedBack)
+        {
+            rb.MovePosition(rb.position + knockbackDir * knockbackForce * Time.fixedDeltaTime);
+            knockbackTimer -= Time.fixedDeltaTime;
+            if (knockbackTimer <= 0)
+            {
+                isKnockedBack = false;
+            }
+        }
+        else
+        {
+            Vector2 movement = moveInput.normalized;
+            rb.MovePosition(rb.position + movement * speed * Time.fixedDeltaTime);
+        }
     }
 
     void Update()

@@ -95,7 +95,7 @@ public class Attack : MonoBehaviour
         if (weapon != null)
         {
             initialRotation = weapon.localRotation;
-            rArmInitialPos = weapon.localPosition;
+            weapon.localRotation = initialRotation;
             Debug.Log($"[Attack] Weapon found: {weapon.name}");
 
             // WeaponController 찾기 및 설정
@@ -176,8 +176,7 @@ public class Attack : MonoBehaviour
             swordWaveRemainingTime -= Time.deltaTime;
         }
 
-        // 4. 마우스 입력 처리 (가드)
-        if (ms != null && ms.rightButton != null)
+        if (ms != null && ms.rightButton != null && Time.timeScale > 0) // 일시 정지 중에는 조작 무시
         {
             bool rightPressed = ms.rightButton.isPressed;
 
@@ -200,6 +199,12 @@ public class Attack : MonoBehaviour
             isGuarding = false;
             weapon.localRotation = initialRotation;
         }
+    }
+
+    void OnDisable()
+    {
+        isGuarding = false;
+        if (weapon != null) weapon.localRotation = initialRotation;
     }
 
     public void OnAttack(InputValue value)

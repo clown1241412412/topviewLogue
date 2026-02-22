@@ -13,9 +13,19 @@ public class Enemy : MonoBehaviour
     private float activateDelay = 0.5f;
     private bool canHit = false;
 
-    // 엘리트 관련
+    // 엘리트 및 보스 관련
     public bool isElite = false;
+    public bool isBoss = false;
     private SpriteRenderer mainRenderer;
+
+    // 보스 행동 패턴 관련
+    private float bossActionTimer = 0f;
+    private bool isTelegraphing = false;
+    private bool isDashing = false;
+    private Vector2 dashDirection;
+    private float dashDuration = 0.2f;
+    private float dashTimer = 0f;
+    private float dashSpeed = 45f;
 
     // HP바 관련
     private GameObject hpBarBG;
@@ -101,6 +111,50 @@ public class Enemy : MonoBehaviour
             return; // 넉백 중에는 일반 이동 및 공격 불가
         }
 
+        // 보스 행동 패턴 처리
+        if (isBoss)
+        {
+            if (isDashing)
+            {
+                transform.position += (Vector3)(dashDirection * dashSpeed * Time.deltaTime);
+                dashTimer -= Time.deltaTime;
+                if (dashTimer <= 0) isDashing = false;
+                
+                CheckPlayerHit(); // 돌진 중에도 피격 판정
+                return;
+            }
+
+            if (isTelegraphing)
+            {
+                bossActionTimer += Time.deltaTime;
+                // 돌진 전 예고 연출 (빨간색으로 깜빡임)
+                if (mainRenderer != null)
+                {
+                    float pulse = Mathf.PingPong(Time.time * 10, 1.0f);
+                    mainRenderer.color = Color.Lerp(new Color(0.5f, 0, 0.5f), Color.red, pulse);
+                }
+
+                if (bossActionTimer >= 1.0f) // 1초 대기 후 돌진
+                {
+                    isTelegraphing = false;
+                    isDashing = true;
+                    dashTimer = dashDuration;
+                    dashDirection = ((Vector2)player.position - (Vector2)transform.position).normalized;
+                    bossActionTimer = 0f;
+                    if (mainRenderer != null) mainRenderer.color = new Color(0.5f, 0, 0.5f); // 원래 색 복구
+                }
+                return;
+            }
+
+            bossActionTimer += Time.deltaTime;
+            if (bossActionTimer >= 5.0f) // 5초 이동 후 telegraph
+            {
+                isTelegraphing = true;
+                bossActionTimer = 0f;
+                return;
+            }
+        }
+
         // 스폰 후 딜레이
         if (!canHit)
         {
@@ -125,47 +179,59 @@ public class Enemy : MonoBehaviour
             hpBarBG.transform.position = transform.position + new Vector3(0, -0.7f, 0);
         }
 
-        // 거리 기반 피격 판정
-        if (canHit)
-        {
-            float dist = Vector2.Distance(transform.position, player.position);
-            if (dist <= hitDistance)
-            {
-                // 플레이어가 가드 중인지 확인
-                Attack playerAttack = player.GetComponent<Attack>();
-                bool isGuarding = false;
+        CheckPlayerHit();
+    }
 
-                if (playerAttack != null && playerAttack.IsGuarding)
+    void CheckPlayerHit()
+    {
+        if (player == null || !canHit) return;
+
+        float dist = Vector2.Distance(transform.position, player.position);
+        if (dist <= hitDistance * (isBoss ? 2.5f : 1.0f)) // 보스는 피격 범위가 큼
+        {
+            // 플레이어가 가드 중인지 확인
+            Attack playerAttack = player.GetComponent<Attack>();
+            bool isGuarding = false;
+
+            if (playerAttack != null && playerAttack.IsGuarding)
+            {
+                // 가드 각도 계산 (전방 120도 = 좌우 60도)
+                Vector2 dirToEnemy = ((Vector2)transform.position - (Vector2)player.position).normalized;
+                if (Vector2.Angle((Vector2)player.up, dirToEnemy) < 60f)
                 {
-                    // 가드 각도 계산 (전방 120도 = 좌우 60도)
-                    Vector2 dirToEnemy = ((Vector2)transform.position - (Vector2)player.position).normalized;
-                    if (Vector2.Angle((Vector2)player.up, dirToEnemy) < 60f)
-                    {
-                        isGuarding = true;
-                    }
+                    isGuarding = true;
+                }
+            }
+
+            if (isGuarding)
+            {
+                // 가드 성공: 적 넉백 발생
+                isKnockedBack = true;
+                knockbackTimer = knockbackDuration;
+                knockbackDir = ((Vector2)transform.position - (Vector2)player.position).normalized;
+            }
+            else
+            {
+                // 플레이어에게 데미지 입힘
+                PlayerHealth health = player.GetComponent<PlayerHealth>();
+                if (health != null)
+                {
+                    health.TakeDamage(contactDamage);
                 }
 
-                if (isGuarding)
+                // 보스 추가 효과: 플레이어 넉백
+                if (isBoss)
                 {
-                    // 가드 성공: 넉백 발생
-                    isKnockedBack = true;
-                    knockbackTimer = knockbackDuration;
-                    // 플레이어에서 멀어지는 방향
-                    knockbackDir = ((Vector2)transform.position - (Vector2)player.position).normalized;
-                    
-                    // 넉백 효과나 소리를 여기에 추가 가능
-                    // Debug.Log("Guard Triggered! Enemy Knockback.");
+                    Move playerMove = player.GetComponent<Move>();
+                    if (playerMove != null)
+                    {
+                        Vector2 pushDir = ((Vector2)player.position - (Vector2)transform.position).normalized;
+                        playerMove.ApplyKnockback(pushDir, 18f, 0.25f); // 큰 넉백
+                    }
                 }
                 else
                 {
-                    // 플레이어에게 데미지 입힘
-                    PlayerHealth health = player.GetComponent<PlayerHealth>();
-                    if (health != null)
-                    {
-                        health.TakeDamage(contactDamage);
-                    }
-
-                    // 자폭 시에는 웨이브 처치 카운트에서 제외 (사용자 요청)
+                    // 일반 적은 자폭
                     Destroy(gameObject);
                 }
             }
@@ -186,6 +252,12 @@ public class Enemy : MonoBehaviour
 
         if (currentHP <= 0)
         {
+            // 보스 처치 시 로직
+            if (isBoss && LevelManager.Instance != null)
+            {
+                LevelManager.Instance.GameOver(true);
+            }
+
             // 경험치 지급
             if (LevelManager.Instance != null)
             {
@@ -205,28 +277,36 @@ public class Enemy : MonoBehaviour
 
     void UpdateHPBar()
     {
+        // 1. 개별 유닛 위의 HP바 업데이트
         if (hpBarFill != null)
         {
             float ratio = (float)currentHP / maxHP;
             hpBarFill.transform.localScale = new Vector3(ratio, 1f, 1f);
-            // 왼쪽부터 줄어들도록 위치 조정
             hpBarFill.transform.localPosition = new Vector3(-(1f - ratio) / 2f, 0, 0);
+        }
+
+        // 2. 보스일 경우 화면 상단 대형 HP바 업데이트
+        if (isBoss && LevelManager.Instance != null)
+        {
+            LevelManager.Instance.UpdateBossHPBar(currentHP, maxHP);
         }
     }
 
     public void SetHPByWave(int wave)
     {
-        // 기본 체력 2 + 매 웨이브마다 1씩 증가 (기존: 2웨이브마다 1증가)
+        if (isBoss) return; // 보스는 별도 스탯 사용하므로 스킵
+
+        // 기본 체력 2 + 매 웨이브마다 1씩 증가
         maxHP = 2 + (wave - 1);
         
         // 데미지 성장: 5개 웨이브마다 1씩 증가
         contactDamage = 1 + (wave - 1) / 5;
 
-        // 엘리트라면 체력/데미지 2배
+        // 엘리트라면 체력/데미지 3배
         if (isElite)
         {
-            maxHP *= 2;
-            contactDamage *= 2;
+            maxHP *= 3;
+            contactDamage *= 3;
         }
 
         currentHP = maxHP;
@@ -238,16 +318,42 @@ public class Enemy : MonoBehaviour
         isElite = elite;
         if (isElite)
         {
-            // 초록색으로 변경
+            // 초록색 및 크기 조정
             if (mainRenderer == null) mainRenderer = GetComponent<SpriteRenderer>();
             if (mainRenderer != null) mainRenderer.color = Color.green;
-            
-            // 크기 1.5배
             transform.localScale = Vector3.one * 1.5f;
 
-            // 이미 SetHPByWave가 호출되었을 상황을 대비해 데미지/체력 보정
-            // (체력은 SetHPByWave에서 이미 처리됨)
-            // 배율은 2배 유지
+            // 이미 SetHPByWave가 호출되었을 상황을 대비해 스탯 재설정 (Spawner 순서 변경 대비)
+            maxHP = (2 + (EnemySpawner.Instance.currentWave - 1)) * 3;
+            contactDamage = (1 + (EnemySpawner.Instance.currentWave - 1) / 5) * 3;
+            currentHP = maxHP;
+            UpdateHPBar();
+        }
+    }
+
+    public void SetBoss(bool boss)
+    {
+        isBoss = boss;
+        if (isBoss)
+        {
+            // 보라색으로 변경
+            if (mainRenderer == null) mainRenderer = GetComponent<SpriteRenderer>();
+            if (mainRenderer != null) mainRenderer.color = new Color(0.5f, 0, 0.5f); // Purple
+            
+            // 크기 3배
+            transform.localScale = Vector3.one * 3.0f;
+
+            // 체력/데미지 보정 (요청사항: 체력 100)
+            maxHP = 100;
+            contactDamage = 35; // 3대 맞으면 죽음 (maxHP 60-100 사이 기준)
+            currentHP = maxHP;
+            UpdateHPBar();
+
+            // 보스 체력바 생성
+            if (LevelManager.Instance != null)
+            {
+                LevelManager.Instance.CreateBossHPBar(maxHP);
+            }
         }
     }
 
