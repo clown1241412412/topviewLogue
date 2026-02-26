@@ -27,6 +27,7 @@ public class Attack : MonoBehaviour
     public bool hasSpin = false;
     public bool hasSwordWave = false;
     public bool hasParry = false;
+    public bool hasBloodSlash = false;
 
     [Header("Buff Status")]
     private float swordWaveRemainingTime = 0f;
@@ -42,10 +43,17 @@ public class Attack : MonoBehaviour
     public float parryAoeAngle = 180f;
     public float parryKnockbackForce = 8f;
 
+    [Header("Blood Slash Settings")]
+    public float bloodSlashCooldown = 15f;
+    private float lastBloodSlashTime = -100f;
+    public int bloodSlashDamageMultiplier = 10;
+
     public float FireballCooldownRemaining => Mathf.Max(0, (lastFireballTime + fireballCooldown) - Time.time);
     public float SkillCooldownRemaining => Mathf.Max(0, (lastSkillTime + skillCooldown) - Time.time);
     public float SwordWaveCooldownRemaining => Mathf.Max(0, (lastSwordWaveTime + swordWaveCooldown) - Time.time);
     public float ParryCooldownRemaining => Mathf.Max(0, (lastParryTime + parryCooldown) - Time.time);
+    public float BloodSlashCooldownRemaining => Mathf.Max(0, (lastBloodSlashTime + bloodSlashCooldown) - Time.time);
+    public float RSkillCooldownRemaining => hasBloodSlash ? BloodSlashCooldownRemaining : SwordWaveCooldownRemaining;
 
     public void IncreaseDamage(int amount)
     {
@@ -183,7 +191,11 @@ public class Attack : MonoBehaviour
                 else TryStartSkill();
             }
             if (kb.qKey != null && kb.qKey.wasPressedThisFrame) TryStartFireball();
-            if (kb.rKey != null && kb.rKey.wasPressedThisFrame) TryStartSwordWave();
+            if (kb.rKey != null && kb.rKey.wasPressedThisFrame)
+            {
+                if (hasBloodSlash) TryStartBloodSlash();
+                else TryStartSwordWave();
+            }
         }
 
         // Sword Wave 버프 타이머 업데이트
@@ -545,6 +557,189 @@ public class Attack : MonoBehaviour
             lastSwordWaveTime = Time.time;
             Debug.Log("[Skill] Sword Wave Activated! Duration: " + swordWaveDuration);
         }
+    }
+
+    // === 블러드 슬래시 (Blood Slash) ===
+    private void TryStartBloodSlash()
+    {
+        if (!hasBloodSlash) return;
+        if (moveScript == null) InitializeComponents();
+        if (!isAttacking && !isSpinning_internal && !isGuarding && !isParrying && Time.time >= lastBloodSlashTime + bloodSlashCooldown && weapon != null)
+        {
+            if (gameObject.activeInHierarchy)
+            {
+                isAttacking = true;
+                StartCoroutine(PerformBloodSlash());
+            }
+        }
+    }
+
+    IEnumerator PerformBloodSlash()
+    {
+        lastBloodSlashTime = Time.time;
+        Debug.Log("[Attack] Blood Slash Activated!");
+
+        // 1. 연출 준비: 캐릭터를 붉게 물들이기 (데미지보다 먼저)
+        SpriteRenderer sr = GetComponent<SpriteRenderer>();
+        Color origColor = Color.white;
+        if (sr != null)
+        {
+            origColor = sr.color;
+            sr.color = new Color(1f, 0.1f, 0.1f, 1f);
+        }
+
+        // 2. 무기 회전 연출 (빠르게 한 바퀴 휘두름)
+        float slashDuration = 0.4f;
+        float elapsed = 0f;
+        while (elapsed < slashDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / slashDuration;
+            weapon.localRotation = initialRotation * Quaternion.Euler(0, 0, t * 360f);
+            // 연출 중에도 붉은 색 유지
+            if (sr != null) sr.color = new Color(1f, 0.1f, 0.1f, 1f);
+            yield return null;
+        }
+        weapon.localRotation = initialRotation;
+
+        // 3. HP를 1로 감소 (연출 후)
+        PlayerHealth health = GetComponent<PlayerHealth>();
+        if (health == null) health = GetComponentInParent<PlayerHealth>();
+        if (health != null && health.currentHP > 1)
+        {
+            health.TakeDamage(health.currentHP - 1);
+        }
+
+        // FlashRed가 색을 덮어쓰지 않도록 즉시 재설정
+        yield return null;
+        if (sr != null) sr.color = new Color(1f, 0.1f, 0.1f, 1f);
+
+        // 4. 맵 전체 적에게 데미지
+        int bloodDamage = attackDamage * bloodSlashDamageMultiplier;
+        Enemy[] allEnemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+        foreach (Enemy enemy in allEnemies)
+        {
+            if (enemy != null && enemy.gameObject.activeInHierarchy)
+            {
+                enemy.TakeDamage(bloodDamage);
+            }
+        }
+        Debug.Log($"[Attack] Blood Slash hit {allEnemies.Length} enemies for {bloodDamage} damage each!");
+
+        // 5. 시각적 이펙트: 원형 검흔 파동 (맵 전체 확장)
+        StartCoroutine(SpawnBloodSlashEffect());
+
+        // 6. FlashRed 완전히 끝날 때까지 대기 후 색상 강제 복구
+        yield return new WaitForSeconds(0.5f);
+        if (sr != null) sr.color = origColor;
+
+        isAttacking = false;
+    }
+
+    IEnumerator SpawnBloodSlashEffect()
+    {
+        // 원형 검흔 링 이펙트 (다중 레이어)
+        int ringCount = 3;
+        List<GameObject> effects = new List<GameObject>();
+
+        for (int i = 0; i < ringCount; i++)
+        {
+            GameObject ring = new GameObject("BloodSlashRing_" + i);
+            ring.transform.position = transform.position;
+            ring.transform.rotation = Quaternion.identity;
+
+            SpriteRenderer ringSR = ring.AddComponent<SpriteRenderer>();
+            ringSR.sprite = GenerateCircularSlashSprite();
+            // 각 링마다 약간 다른 색조
+            float r = 1f - i * 0.1f;
+            ringSR.color = new Color(r, 0.05f + i * 0.05f, 0.05f, 0.9f);
+            ringSR.sortingOrder = 6 + i;
+            effects.Add(ring);
+        }
+
+        // 확장 + 회전 + 페이드 애니메이션
+        float duration = 0.8f;
+        float el = 0f;
+        while (el < duration)
+        {
+            el += Time.deltaTime;
+            float t = el / duration;
+
+            for (int i = 0; i < effects.Count; i++)
+            {
+                GameObject fx = effects[i];
+                if (fx == null) continue;
+
+                // 각 링은 시차를 두고 확장 (안쪽부터 바깥으로)
+                float delay = i * 0.1f;
+                float localT = Mathf.Clamp01((t - delay) / (1f - delay));
+                float easeT = localT * localT * (3f - 2f * localT); // smoothstep
+
+                float scale = Mathf.Lerp(0.5f, 30f, easeT); // 맵 전체를 덮는 크기
+                fx.transform.localScale = new Vector3(scale, scale, 1f);
+
+                // 회전 (각 링마다 반대 방향)
+                float rotSpeed = (i % 2 == 0) ? 180f : -180f;
+                fx.transform.rotation = Quaternion.Euler(0, 0, rotSpeed * t);
+
+                // 알파 페이드
+                float alpha = 0.9f * (1f - localT);
+                SpriteRenderer fxSR = fx.GetComponent<SpriteRenderer>();
+                float r = 1f - i * 0.1f;
+                if (fxSR != null) fxSR.color = new Color(r, 0.05f + i * 0.05f, 0.05f, alpha);
+            }
+            yield return null;
+        }
+
+        foreach (GameObject fx in effects)
+        {
+            if (fx != null) Destroy(fx);
+        }
+    }
+
+    private Sprite GenerateCircularSlashSprite()
+    {
+        int size = 128;
+        Texture2D tex = new Texture2D(size, size);
+        Color transparent = new Color(0, 0, 0, 0);
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = (x - size / 2f) / (size / 2f);
+                float dy = (y - size / 2f) / (size / 2f);
+                float dist = Mathf.Sqrt(dx * dx + dy * dy);
+                float angle = Mathf.Atan2(dy, dx);
+
+                // 원형 검흔: 링 형태 + 불규칙한 검흔 패턴
+                float innerRadius = 0.55f;
+                float outerRadius = 0.95f;
+                bool inRing = dist > innerRadius && dist < outerRadius;
+
+                if (inRing)
+                {
+                    // 가장자리 부드럽게
+                    float edgeFadeOuter = Mathf.Clamp01((outerRadius - dist) * 8f);
+                    float edgeFadeInner = Mathf.Clamp01((dist - innerRadius) * 8f);
+
+                    // 검흔 느낌의 불규칙 패턴 (각도 기반 톱니)
+                    float slashPattern = Mathf.Abs(Mathf.Sin(angle * 6f + dist * 15f));
+                    float slashIntensity = Mathf.Clamp01(slashPattern * 1.5f);
+
+                    float alpha = edgeFadeOuter * edgeFadeInner * (0.5f + slashIntensity * 0.5f);
+                    float brightness = 0.7f + slashIntensity * 0.3f;
+
+                    tex.SetPixel(x, y, new Color(brightness, brightness * 0.15f, brightness * 0.1f, alpha));
+                }
+                else
+                {
+                    tex.SetPixel(x, y, transparent);
+                }
+            }
+        }
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
     }
 
     // === 패링 (Parry) ===

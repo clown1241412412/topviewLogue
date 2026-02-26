@@ -127,12 +127,26 @@ public class PlayerHealth : MonoBehaviour
             }
         }
 
-        // R Cooltime UI
+        // R Cooltime UI (Sword Wave or Blood Slash)
         if (skillKeyTextR != null)
         {
-            if (!attackScript.hasSwordWave)
+            if (!attackScript.hasSwordWave && !attackScript.hasBloodSlash)
             {
                 skillKeyTextR.text = ""; // 스킬 없음
+            }
+            else if (attackScript.hasBloodSlash)
+            {
+                float rCool = attackScript.BloodSlashCooldownRemaining;
+                if (rCool > 0)
+                {
+                    skillKeyTextR.text = Mathf.CeilToInt(rCool).ToString();
+                    skillKeyTextR.color = Color.gray;
+                }
+                else
+                {
+                    skillKeyTextR.text = "R";
+                    skillKeyTextR.color = new Color(1f, 0.3f, 0.3f); // 붉은색으로 구분
+                }
             }
             else
             {
