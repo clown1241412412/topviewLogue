@@ -21,6 +21,10 @@ public class LevelManager : MonoBehaviour
     private Image bossHPFill;
     private Text bossHPText;
 
+    // Start Screen
+    public bool gameStarted = false;
+    private GameObject startScreenPanel;
+
     void Awake()
     {
         if (Instance == null)
@@ -33,10 +37,11 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
-        Time.timeScale = 1; // 씬 시작 시 시간 흐름 보장
+        Time.timeScale = 0; // 시작 화면에서 일시 정지
         CreateEXPBar();
         EnsureEventSystem();
         CreateDebugUI();
+        CreateStartScreen();
     }
 
     void CreateEXPBar()
@@ -390,5 +395,95 @@ public class LevelManager : MonoBehaviour
             }
             es.gameObject.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
         }
+    }
+
+    void CreateStartScreen()
+    {
+        // 전체 화면 검은 배경 패널
+        startScreenPanel = new GameObject("StartScreenPanel");
+        startScreenPanel.transform.SetParent(canvasObj.transform, false);
+        Image panelImage = startScreenPanel.AddComponent<Image>();
+        panelImage.color = new Color(0, 0, 0, 1f);
+        panelImage.raycastTarget = true;
+
+        RectTransform panelRect = startScreenPanel.GetComponent<RectTransform>();
+        panelRect.anchorMin = Vector2.zero;
+        panelRect.anchorMax = Vector2.one;
+        panelRect.offsetMin = Vector2.zero;
+        panelRect.offsetMax = Vector2.zero;
+        startScreenPanel.transform.SetAsLastSibling();
+
+        // 게임 타이틀 텍스트
+        GameObject titleObj = new GameObject("TitleText");
+        titleObj.transform.SetParent(startScreenPanel.transform, false);
+        Text titleText = titleObj.AddComponent<Text>();
+        titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        titleText.fontSize = 60;
+        titleText.color = Color.white;
+        titleText.text = "TopView Logue";
+        titleText.alignment = TextAnchor.MiddleCenter;
+        titleText.raycastTarget = false;
+
+        RectTransform titleRect = titleObj.GetComponent<RectTransform>();
+        titleRect.anchorMin = new Vector2(0.5f, 0.5f);
+        titleRect.anchorMax = new Vector2(0.5f, 0.5f);
+        titleRect.pivot = new Vector2(0.5f, 0.5f);
+        titleRect.anchoredPosition = new Vector2(0, 120);
+        titleRect.sizeDelta = new Vector2(600, 80);
+
+        // START 버튼 (크게)
+        GameObject btnObj = new GameObject("StartButton");
+        btnObj.transform.SetParent(startScreenPanel.transform, false);
+
+        Image btnImg = btnObj.AddComponent<Image>();
+        btnImg.color = new Color(0.15f, 0.15f, 0.15f, 1f);
+
+        Button btn = btnObj.AddComponent<Button>();
+        btn.targetGraphic = btnImg;
+
+        // 버튼 호버 색상 설정
+        ColorBlock colors = btn.colors;
+        colors.normalColor = new Color(0.15f, 0.15f, 0.15f, 1f);
+        colors.highlightedColor = new Color(0.3f, 0.3f, 0.3f, 1f);
+        colors.pressedColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+        btn.colors = colors;
+
+        btn.onClick.AddListener(StartGame);
+
+        RectTransform btnRect = btnObj.GetComponent<RectTransform>();
+        btnRect.anchorMin = new Vector2(0.5f, 0.5f);
+        btnRect.anchorMax = new Vector2(0.5f, 0.5f);
+        btnRect.pivot = new Vector2(0.5f, 0.5f);
+        btnRect.anchoredPosition = new Vector2(0, -30);
+        btnRect.sizeDelta = new Vector2(300, 80);
+
+        // START 텍스트
+        GameObject btnTextObj = new GameObject("Text");
+        btnTextObj.transform.SetParent(btnObj.transform, false);
+        Text btnText = btnTextObj.AddComponent<Text>();
+        btnText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        btnText.fontSize = 48;
+        btnText.color = Color.white;
+        btnText.text = "START";
+        btnText.alignment = TextAnchor.MiddleCenter;
+
+        RectTransform btnTextRect = btnTextObj.GetComponent<RectTransform>();
+        btnTextRect.anchorMin = Vector2.zero;
+        btnTextRect.anchorMax = Vector2.one;
+        btnTextRect.sizeDelta = Vector2.zero;
+    }
+
+    public void StartGame()
+    {
+        gameStarted = true;
+        Time.timeScale = 1;
+
+        if (startScreenPanel != null)
+        {
+            Destroy(startScreenPanel);
+            startScreenPanel = null;
+        }
+
+        Debug.Log("[LevelManager] Game Started!");
     }
 }

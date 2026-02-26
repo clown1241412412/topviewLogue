@@ -52,6 +52,16 @@ public class EnemySpawner : MonoBehaviour
         }
 
         CreateWaveUI();
+        StartCoroutine(WaitForGameStart());
+    }
+
+    IEnumerator WaitForGameStart()
+    {
+        // 스타트 화면이 닫힐 때까지 대기
+        while (LevelManager.Instance == null || !LevelManager.Instance.gameStarted)
+        {
+            yield return null;
+        }
         StartCoroutine(StartWaveRoutine(currentWave));
     }
 
