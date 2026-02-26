@@ -210,6 +210,25 @@ public class Enemy : MonoBehaviour
                 knockbackTimer = knockbackDuration;
                 knockbackDir = ((Vector2)transform.position - (Vector2)player.position).normalized;
             }
+            else if (playerAttack != null && playerAttack.IsParrying)
+            {
+                // 패링 성공: 데미지 방어 + 패링 카운터 어택
+                Vector2 dirToEnemy = ((Vector2)transform.position - (Vector2)player.position).normalized;
+                if (Vector2.Angle((Vector2)player.up, dirToEnemy) < 90f) // 전방 180도 범위
+                {
+                    playerAttack.OnParrySuccess(this);
+                }
+                else
+                {
+                    // 후방 공격: 패링 실패, 일반 데미지
+                    PlayerHealth health = player.GetComponent<PlayerHealth>();
+                    if (health != null)
+                    {
+                        health.TakeDamage(contactDamage);
+                    }
+                    if (!isBoss) Destroy(gameObject);
+                }
+            }
             else
             {
                 // 플레이어에게 데미지 입힘
@@ -241,6 +260,14 @@ public class Enemy : MonoBehaviour
     void OnDestroy()
     {
         if (hpBarBG != null) Destroy(hpBarBG);
+    }
+
+    public void ApplyParryKnockback(Vector2 direction, float force)
+    {
+        isKnockedBack = true;
+        knockbackTimer = 0.4f; // 패링 넉백은 일반보다 길게
+        knockbackDir = direction;
+        knockbackSpeed = force;
     }
 
     public void TakeDamage(int damage)

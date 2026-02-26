@@ -90,12 +90,26 @@ public class PlayerHealth : MonoBehaviour
             }
         }
 
-        // E Cooltime UI
+        // E Cooltime UI (Spin or Parry)
         if (skillKeyTextE != null)
         {
-            if (!attackScript.hasSpin)
+            if (!attackScript.hasSpin && !attackScript.hasParry)
             {
                 skillKeyTextE.text = ""; // 스킬 없음
+            }
+            else if (attackScript.hasParry)
+            {
+                float eCool = attackScript.ParryCooldownRemaining;
+                if (eCool > 0)
+                {
+                    skillKeyTextE.text = Mathf.CeilToInt(eCool).ToString();
+                    skillKeyTextE.color = Color.gray;
+                }
+                else
+                {
+                    skillKeyTextE.text = "E";
+                    skillKeyTextE.color = new Color(0.3f, 0.8f, 1f); // 시안색으로 구분
+                }
             }
             else
             {

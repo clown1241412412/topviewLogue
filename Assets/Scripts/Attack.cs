@@ -26,6 +26,7 @@ public class Attack : MonoBehaviour
     public bool hasFireball = false;
     public bool hasSpin = false;
     public bool hasSwordWave = false;
+    public bool hasParry = false;
 
     [Header("Buff Status")]
     private float swordWaveRemainingTime = 0f;
@@ -33,9 +34,18 @@ public class Attack : MonoBehaviour
     public float swordWaveCooldown = 8f;
     private float lastSwordWaveTime = -100f;
 
+    [Header("Parry Settings")]
+    public float parryCooldown = 4f;
+    private float lastParryTime = -100f;
+    public float parryWindow = 0.3f;
+    public float parryAoeRadius = 5f;
+    public float parryAoeAngle = 180f;
+    public float parryKnockbackForce = 8f;
+
     public float FireballCooldownRemaining => Mathf.Max(0, (lastFireballTime + fireballCooldown) - Time.time);
     public float SkillCooldownRemaining => Mathf.Max(0, (lastSkillTime + skillCooldown) - Time.time);
     public float SwordWaveCooldownRemaining => Mathf.Max(0, (lastSwordWaveTime + swordWaveCooldown) - Time.time);
+    public float ParryCooldownRemaining => Mathf.Max(0, (lastParryTime + parryCooldown) - Time.time);
 
     public void IncreaseDamage(int amount)
     {
@@ -58,6 +68,8 @@ public class Attack : MonoBehaviour
     private bool isSpinning_internal = false; // 이름 충돌 방지
     private bool isGuarding = false;
     public bool IsGuarding { get { return isGuarding; } } // 외부에서 접근 가능하도록 프로퍼티 추가
+    private bool isParrying = false;
+    public bool IsParrying { get { return isParrying; } }
     private Quaternion initialRotation;
     private Vector3 rArmInitialPos;
     private Vector3 lArmInitialPos;
@@ -165,7 +177,11 @@ public class Attack : MonoBehaviour
         if (kb != null)
         {
             // 특정 키가 null일 수 있는 예외 상황 대비
-            if (kb.eKey != null && kb.eKey.wasPressedThisFrame) TryStartSkill();
+            if (kb.eKey != null && kb.eKey.wasPressedThisFrame)
+            {
+                if (hasParry) TryStartParry();
+                else TryStartSkill();
+            }
             if (kb.qKey != null && kb.qKey.wasPressedThisFrame) TryStartFireball();
             if (kb.rKey != null && kb.rKey.wasPressedThisFrame) TryStartSwordWave();
         }
@@ -224,7 +240,8 @@ public class Attack : MonoBehaviour
     {
         if (value.isPressed)
         {
-            TryStartSkill();
+            if (hasParry) TryStartParry();
+            else TryStartSkill();
         }
     }
 
@@ -528,6 +545,139 @@ public class Attack : MonoBehaviour
             lastSwordWaveTime = Time.time;
             Debug.Log("[Skill] Sword Wave Activated! Duration: " + swordWaveDuration);
         }
+    }
+
+    // === 패링 (Parry) ===
+    private void TryStartParry()
+    {
+        if (!hasParry) return;
+        if (moveScript == null) InitializeComponents();
+        if (!isAttacking && !isSpinning_internal && !isGuarding && !isParrying && Time.time >= lastParryTime + parryCooldown && weapon != null)
+        {
+            if (gameObject.activeInHierarchy)
+            {
+                isParrying = true;
+                StartCoroutine(PerformParry());
+            }
+        }
+    }
+
+    IEnumerator PerformParry()
+    {
+        lastParryTime = Time.time;
+        isAttacking = true; // 다른 행동 방지
+
+        // 시각적 피드백: 무기를 앞으로 들어올림
+        Quaternion parryRotation = initialRotation * Quaternion.Euler(0, 0, 45f);
+        weapon.localRotation = parryRotation;
+
+        // 캐릭터 색상 변경 (시안색 플래시)
+        SpriteRenderer sr = GetComponent<SpriteRenderer>();
+        Color origColor = Color.white;
+        if (sr != null)
+        {
+            origColor = sr.color;
+            sr.color = new Color(0.3f, 0.8f, 1f, 1f); // 시안색
+        }
+
+        // 패링 윈도우 대기
+        yield return new WaitForSeconds(parryWindow);
+
+        // 패링 윈도우 종료 - 원래 상태로 복구
+        if (sr != null) sr.color = origColor;
+        weapon.localRotation = initialRotation;
+
+        isParrying = false;
+        isAttacking = false;
+    }
+
+    public void OnParrySuccess(Enemy triggeredEnemy)
+    {
+        Debug.Log("[Attack] Parry Success!");
+
+        // 1. 패링 트리거한 적 넉백
+        if (triggeredEnemy != null)
+        {
+            Vector2 knockDir = ((Vector2)triggeredEnemy.transform.position - (Vector2)transform.position).normalized;
+            triggeredEnemy.ApplyParryKnockback(knockDir, parryKnockbackForce);
+        }
+
+        // 2. 전방 부채꼴 범위 내 모든 적에게 데미지
+        int parryDamage = attackDamage * 2;
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, parryAoeRadius);
+        foreach (Collider2D hit in hits)
+        {
+            Enemy enemy = hit.GetComponent<Enemy>();
+            if (enemy == null) enemy = hit.GetComponentInParent<Enemy>();
+            if (enemy == null) continue;
+
+            // 부채꼴 각도 체크
+            Vector2 dirToEnemy = ((Vector2)enemy.transform.position - (Vector2)transform.position).normalized;
+            float angle = Vector2.Angle((Vector2)transform.up, dirToEnemy);
+            if (angle <= parryAoeAngle / 2f)
+            {
+                enemy.TakeDamage(parryDamage);
+            }
+        }
+
+        // 3. 시각적 이펙트 (파란색 파동)
+        StartCoroutine(SpawnParryEffect());
+    }
+
+    IEnumerator SpawnParryEffect()
+    {
+        GameObject effect = new GameObject("ParryEffect");
+        effect.transform.position = transform.position;
+        effect.transform.rotation = transform.rotation;
+
+        SpriteRenderer effectSR = effect.AddComponent<SpriteRenderer>();
+        effectSR.sprite = GenerateParrySprite();
+        effectSR.color = new Color(0.3f, 0.7f, 1f, 0.7f);
+        effectSR.sortingOrder = 5;
+
+        // 확장 애니메이션
+        float duration = 0.3f;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            float scale = Mathf.Lerp(0.5f, parryAoeRadius * 2f, t);
+            effect.transform.localScale = new Vector3(scale, scale, 1f);
+            effectSR.color = new Color(0.3f, 0.7f, 1f, 0.7f * (1f - t));
+            yield return null;
+        }
+        Destroy(effect);
+    }
+
+    private Sprite GenerateParrySprite()
+    {
+        int size = 64;
+        Texture2D tex = new Texture2D(size, size);
+        Color transparent = new Color(0, 0, 0, 0);
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = (x - (size / 2f)) / (size / 2f);
+                float dy = (y - (size / 2f)) / (size / 2f);
+                float dist = Mathf.Sqrt(dx * dx + dy * dy);
+
+                // 반원 (윗부분만 = 전방)
+                if (dist < 0.9f && dist > 0.5f && dy > -0.1f)
+                {
+                    float alpha = Mathf.Clamp01((0.9f - dist) * 5f) * Mathf.Clamp01((dist - 0.5f) * 5f);
+                    tex.SetPixel(x, y, new Color(1, 1, 1, alpha));
+                }
+                else
+                {
+                    tex.SetPixel(x, y, transparent);
+                }
+            }
+        }
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
     }
 
     private void SpawnSwordWave()
