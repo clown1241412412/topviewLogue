@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 public class Move : MonoBehaviour
 {
     public float speed = 5f;
+    public float speedMultiplier = 1f; // 광폭화 등 버프에 사용
     public bool canRotate = true; // 스킬 사용 시 회전 제한을 위해 추가
     private Vector2 moveInput;
     private Rigidbody2D rb;
@@ -52,7 +53,7 @@ public class Move : MonoBehaviour
         else
         {
             Vector2 movement = moveInput.normalized;
-            rb.MovePosition(rb.position + movement * speed * Time.fixedDeltaTime);
+            rb.MovePosition(rb.position + movement * speed * speedMultiplier * Time.fixedDeltaTime);
         }
     }
 

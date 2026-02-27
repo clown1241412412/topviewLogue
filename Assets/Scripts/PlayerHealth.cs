@@ -61,6 +61,51 @@ public class PlayerHealth : MonoBehaviour
     void Update()
     {
         UpdateSkillUI();
+        CheckBerserk();
+    }
+
+    void CheckBerserk()
+    {
+        if (attackScript == null || !attackScript.hasBerserk) return;
+
+        float hpRatio = (float)currentHP / maxHP;
+        bool shouldBeBerserk = hpRatio <= 0.3f && currentHP > 0;
+
+        if (shouldBeBerserk && !attackScript.isBerserkActive)
+        {
+            // 광폭화 활성화
+            attackScript.isBerserkActive = true;
+
+            // 이동 속도 버프
+            Move moveScript = GetComponent<Move>();
+            if (moveScript == null) moveScript = GetComponentInParent<Move>();
+            if (moveScript != null) moveScript.speedMultiplier = 3f;
+
+            // 시각적 효과: 붉은 틴트
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = new Color(1f, 0.3f, 0.3f, 1f);
+            }
+
+            Debug.Log("[Berserk] 광폭화 활성! 모든 행동속도 3배!");
+        }
+        else if (!shouldBeBerserk && attackScript.isBerserkActive)
+        {
+            // 광폭화 해제
+            attackScript.isBerserkActive = false;
+
+            Move moveScript = GetComponent<Move>();
+            if (moveScript == null) moveScript = GetComponentInParent<Move>();
+            if (moveScript != null) moveScript.speedMultiplier = 1f;
+
+            // 시각적 효과 해제
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = originalColor;
+            }
+
+            Debug.Log("[Berserk] 광폭화 해제. 행동속도 원래대로.");
+        }
     }
 
     void UpdateSkillUI()

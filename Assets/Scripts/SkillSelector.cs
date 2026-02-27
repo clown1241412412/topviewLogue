@@ -60,7 +60,7 @@ public class SkillSelector : MonoBehaviour
         panelRect.sizeDelta = Vector2.zero;
 
         // Options
-        List<string> allSkills = new List<string> { "Fireball (Q)", "Spin Attack (E)", "Parry (E)", "Sword Wave (R)", "Blood Slash (R)", "Heal (+30 HP)", "Damage +1", "Max HP +20" };
+        List<string> allSkills = new List<string> { "Fireball (Q)", "Spin Attack (E)", "Parry (E)", "Sword Wave (R)", "Blood Slash (R)", "Berserk (Passive)", "Heal (+30 HP)", "Damage +1", "Max HP +20" };
         
         // 이미 획득한 액티브 스킬 제거
         GameObject player = GameObject.FindGameObjectWithTag("Player");
@@ -82,6 +82,7 @@ public class SkillSelector : MonoBehaviour
                     allSkills.Remove("Sword Wave (R)");
                     allSkills.Remove("Blood Slash (R)");
                 }
+                if (atk.hasBerserk) allSkills.Remove("Berserk (Passive)");
             }
         }
 
@@ -145,6 +146,7 @@ public class SkillSelector : MonoBehaviour
             else if (skillName.Contains("Parry")) atk.hasParry = true;
             else if (skillName.Contains("Blood Slash")) atk.hasBloodSlash = true;
             else if (skillName.Contains("Sword Wave")) atk.hasSwordWave = true;
+            else if (skillName.Contains("Berserk")) atk.hasBerserk = true;
             else if (skillName.Contains("Heal"))
             {
                 hp.currentHP = Mathf.Min(hp.maxHP, hp.currentHP + 30);

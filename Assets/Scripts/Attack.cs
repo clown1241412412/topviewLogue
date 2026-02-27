@@ -29,6 +29,11 @@ public class Attack : MonoBehaviour
     public bool hasParry = false;
     public bool hasBloodSlash = false;
 
+    [Header("Passive Skills")]
+    public bool hasBerserk = false;
+    public bool isBerserkActive = false;
+    public float actionSpeedMultiplier => isBerserkActive ? 3f : 1f;
+
     [Header("Buff Status")]
     private float swordWaveRemainingTime = 0f;
     public float swordWaveDuration = 5f;
@@ -85,6 +90,10 @@ public class Attack : MonoBehaviour
     private WeaponController weaponController;
     private Move moveScript;
     private int heartbeatCounter = 0;
+
+    // 광폭화 시각적 효과
+    private SpriteRenderer berserkSR;
+    private Color berserkOrigColor;
 
     void Start()
     {
@@ -430,7 +439,7 @@ public class Attack : MonoBehaviour
         float lastResetTime = 0f;
 
         // 초당 몇 바퀴 돌지
-        float rotationsPerSecond = 2f; 
+        float rotationsPerSecond = 2f * actionSpeedMultiplier; 
 
         // 스킬 시작 시 팔을 앞으로 모으기 (두 손으로 잡는 연출)
         Vector3 rArmSkillPos = rArmInitialPos + new Vector3(0.2f, 0.5f, 0); // 약간 앞으로, 안으로
@@ -520,7 +529,7 @@ public class Attack : MonoBehaviour
 
                 weapon.localRotation = Quaternion.Lerp(startRot, endRot, t);
 
-                elapsedTime += Time.deltaTime;
+                elapsedTime += Time.deltaTime * actionSpeedMultiplier;
                 yield return null;
             }
 
@@ -544,7 +553,7 @@ public class Attack : MonoBehaviour
 
     IEnumerator ResetAttackAfterCooldown()
     {
-        yield return new WaitForSeconds(cooldown);
+        yield return new WaitForSeconds(cooldown / actionSpeedMultiplier);
         isAttacking = false;
     }
 
